@@ -1,0 +1,41 @@
+@import "tailwindcss";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+
+  /* Fonts previously provided by next/font. Loaded via <link> in index.html. */
+  --font-sans: "Poppins", ui-sans-serif, system-ui, -apple-system, "Segoe UI",
+    Roboto, Helvetica, Arial, sans-serif;
+  --font-script: "Kaushan Script", cursive;
+}
+
+/* Make `font-sans` (and the theme) resolve to Poppins, matching the original
+   next/font setup where the body carried the --font-sans variable. */
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Admin panel inputs mostly don't set an explicit placeholder color, so they
+   fall back to Tailwind's default — too light to read. Scoped to elements
+   without an explicit `placeholder:text-*` utility (those keep winning via
+   specificity), so the public site's forms are unaffected. */
+#admin-app ::placeholder {
+  color: #64748b; /* slate-500 */
+  opacity: 1;
+}
