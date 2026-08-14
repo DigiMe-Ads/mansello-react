@@ -14,8 +14,10 @@ export default function Marketplace() {
       <MarketplaceCategories />
       <BrandsTrust />
       <HowItWorks />
-      <DealOfTheDay />
+      {/* Shared provider so Deal of the Day and Best Products show the same
+          catalog data — one fetch, one source of truth. */}
       <MarketplaceProvider>
+        <DealOfTheDay />
         <BestProducts />
       </MarketplaceProvider>
       <Footer />

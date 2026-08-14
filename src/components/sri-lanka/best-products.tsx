@@ -54,7 +54,7 @@ export default function BestProducts() {
     : products;
 
   return (
-    <section id="products" className="bg-white px-6 py-20 sm:px-12 lg:px-20">
+    <section id="products" className="scroll-mt-28 bg-white px-6 py-20 sm:px-12 lg:px-20">
       <div className="mx-auto max-w-6xl text-center">
         <p className="text-sm text-slate-500">Featured</p>
         <h2 className="mt-1 text-2xl font-extrabold uppercase tracking-wide text-[#153C4D] sm:text-3xl">
