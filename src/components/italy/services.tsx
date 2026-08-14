@@ -154,8 +154,8 @@ export default function Services() {
         <div className="relative z-10 ml-auto mt-16 h-20 w-full max-w-3xl sm:h-24">
           <div className="absolute right-0 top-0 h-40 w-full overflow-hidden rounded-full sm:h-48">
             <Image
-              src="/images/italy/nest-bologna/nest-bologna-exterior-2.webp"
-              alt="Entrance to The Nest Bologna"
+              src="/images/italy-bg2.jpg"
+              alt="Sunlit courtyard entrance at The Nest Bologna"
               fill
               sizes="(min-width: 768px) 768px, 100vw"
               className="object-cover"

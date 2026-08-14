@@ -2,26 +2,27 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
 import { subscribeToNewsletter } from "@/lib/api/leads";
 import { ApiRequestError } from "@/lib/api/errors";
 
-const exploreLinks = ["About us", "Air B&B", "Transport", "News"];
+const exploreLinks = [
+  { label: "About us", href: "/italy/about" },
+  { label: "Air B&B", href: "/italy/airbnb" },
+  // { label: "Transport", href: "/italy/transport" },
+  { label: "News", href: "/italy/blog" },
+];
+// No dedicated destination pages yet — all point to About for now.
 const destinationLinks = ["Modena", "Ferrara", "Florence", "Venice"];
 const legalLinks = [
-  "Terms & Condition",
-  "Privacy Policy",
-  "Contact",
-  "Careers",
-  "Help",
-];
-
-const instagramPhotos = [
-  "/images/italy/nest-bologna/nest-bologna-exterior-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-kitchen-1.webp",
+  { label: "Terms & Condition", href: "/italy/terms" },
+  { label: "Privacy Policy", href: "/italy/privacy" },
+  { label: "Contact", href: "/italy/contact" },
+  // Careers & Help don't have pages yet, so they're left unlinked below.
+  // { label: "Careers", href: null },
+  // { label: "Help", href: null },
 ];
 
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
@@ -199,16 +200,16 @@ export default function Footer() {
               <h3 className="text-lg font-bold text-[#153C4D]">Explore</h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
                 {exploreLinks.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
-                      {l}
-                    </a>
+                  <li key={l.label}>
+                    <Link href={l.href} className="transition hover:text-[#153C4D]">
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Destinations */}
+            {/* Destinations — no dedicated pages yet, so these point to About */}
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">
                 Destinations
@@ -216,9 +217,9 @@ export default function Footer() {
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
                 {destinationLinks.map((l) => (
                   <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
+                    <Link href="/italy/about" className="transition hover:text-[#153C4D]">
                       {l}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -228,13 +229,19 @@ export default function Footer() {
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">Legal</h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
-                {legalLinks.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
-                      {l}
-                    </a>
-                  </li>
-                ))}
+                {legalLinks.map((l) =>
+                  l.href ? (
+                    <li key={l.label}>
+                      <Link href={l.href} className="transition hover:text-[#153C4D]">
+                        {l.label}
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={l.label} className="text-slate-400">
+                      {l.label}
+                    </li>
+                  )
+                )}
               </ul>
             </div>
 
@@ -256,8 +263,8 @@ export default function Footer() {
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Mail size={16} className="text-[#153C4D]" />
                 </span>
-                <a href="mailto:Thenestbologna@gmail.com" className="text-sm text-slate-700">
-                  Thenestbologna@gmail.com
+                <a href="mailto:info@mansello.com" className="text-sm text-slate-700">
+                  info@mansello.com
                 </a>
               </div>
               <div className="flex items-center gap-3">
@@ -273,29 +280,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="mt-14 border-t border-[#153C4D]/10 pt-10">
-            <h4 className="text-lg font-bold text-[#153C4D]">
-              Follow Instagram
-            </h4>
-            <div className="mt-4 flex gap-4">
-              {instagramPhotos.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-sm sm:h-24 sm:w-24"
-                >
-                  <Image
-                    src={src}
-                    alt=""
-                    fill
-                    sizes="(min-width: 640px) 96px, 80px"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="mt-14 text-center text-sm text-slate-500">
+          <p className="mt-14 border-t border-[#153C4D]/10 pt-10 text-center text-sm text-slate-500">
             © 2026 Mansello All Rights Reserved.
           </p>
         </div>

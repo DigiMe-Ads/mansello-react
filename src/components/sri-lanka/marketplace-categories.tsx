@@ -31,16 +31,16 @@ export default function MarketplaceCategories() {
         {categories.map((c) => (
           <div
             key={c.title}
-            className="relative aspect-square w-full overflow-hidden rounded-2xl shadow-lg"
+            className="group relative aspect-square w-full overflow-hidden rounded-2xl shadow-lg transition duration-300 hover:-translate-y-1 hover:shadow-2xl"
           >
             <Image
               src={c.image}
               alt={c.title}
               fill
               sizes="(min-width: 1024px) 25vw, (min-width: 640px) 50vw, 100vw"
-              className="object-cover"
+              className="object-cover transition duration-300 group-hover:scale-110"
             />
-            <div className="absolute inset-x-0 bottom-0 top-[30%] flex flex-col justify-center rounded-tl-3xl bg-black/55 px-5 py-5">
+            <div className="absolute inset-x-0 bottom-0 top-[30%] flex flex-col justify-center rounded-tl-3xl bg-black/55 px-5 py-5 transition group-hover:bg-black/65">
               <h3 className="text-lg font-bold leading-tight text-white">
                 {c.title}
               </h3>

@@ -13,6 +13,8 @@ import ItalyBlogPost from "@/pages/italy/blog/[slug]/page";
 import ItalyBookingConfirmation from "@/pages/italy/booking/confirmation/page";
 import ItalyContact from "@/pages/italy/contact/page";
 import ItalyTransport from "@/pages/italy/transport/page";
+import ItalyTerms from "@/pages/italy/terms/page";
+import ItalyPrivacy from "@/pages/italy/privacy/page";
 
 import SriLankaHome from "@/pages/sri-lanka/page";
 import SriLankaAbout from "@/pages/sri-lanka/about/page";
@@ -23,6 +25,8 @@ import SriLankaBookingConfirmation from "@/pages/sri-lanka/booking/confirmation/
 import SriLankaContact from "@/pages/sri-lanka/contact/page";
 import SriLankaTransport from "@/pages/sri-lanka/transport/page";
 import SriLankaTourPackage from "@/pages/sri-lanka/transport/packages/[slug]/page";
+import SriLankaTerms from "@/pages/sri-lanka/terms/page";
+import SriLankaPrivacy from "@/pages/sri-lanka/privacy/page";
 
 import Marketplace from "@/pages/sri-lanka/marketplace/page";
 import MarketplaceCart from "@/pages/sri-lanka/marketplace/cart/page";
@@ -69,6 +73,8 @@ export default function App() {
         <Route path="/italy/booking/confirmation" element={<ItalyBookingConfirmation />} />
         <Route path="/italy/contact" element={<ItalyContact />} />
         <Route path="/italy/transport" element={<ItalyTransport />} />
+        <Route path="/italy/terms" element={<ItalyTerms />} />
+        <Route path="/italy/privacy" element={<ItalyPrivacy />} />
 
         {/* Sri Lanka */}
         <Route path="/sri-lanka" element={<SriLankaHome />} />
@@ -80,6 +86,8 @@ export default function App() {
         <Route path="/sri-lanka/contact" element={<SriLankaContact />} />
         <Route path="/sri-lanka/transport" element={<SriLankaTransport />} />
         <Route path="/sri-lanka/transport/packages/:slug" element={<SriLankaTourPackage />} />
+        <Route path="/sri-lanka/terms" element={<SriLankaTerms />} />
+        <Route path="/sri-lanka/privacy" element={<SriLankaPrivacy />} />
 
         {/* Sri Lanka marketplace */}
         <Route path="/sri-lanka/marketplace" element={<Marketplace />} />

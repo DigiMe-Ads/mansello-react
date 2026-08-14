@@ -11,10 +11,10 @@ const leftLinks = [
   { label: "Home", href: "/" },
   { label: "About", href: "/sri-lanka/about" },
   { label: "BnB", href: "/sri-lanka/airbnb" },
+  { label: "Transport", href: "/sri-lanka/transport" },
 ];
 
 const rightLinks = [
-  { label: "Transport", href: "/sri-lanka/transport" },
   { label: "Marketplace", href: "/sri-lanka/marketplace" },
   { label: "Contact", href: "/sri-lanka/contact" },
 ];
@@ -37,7 +37,7 @@ export default function Navbar() {
     <header className="fixed top-0 left-1/2 z-50 w-[92%] max-w-6xl -translate-x-1/2">
       <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white/95 px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
         {/* Left links */}
-        <nav className="hidden items-center gap-8 md:flex">
+        <nav className="hidden items-center gap-18 md:flex">
           {leftLinks.map((link) => (
             <Link
               key={link.href}
@@ -53,7 +53,7 @@ export default function Navbar() {
         <div className="w-10 md:hidden" />
 
         {/* Right links + icons */}
-        <div className="hidden items-center gap-8 md:flex">
+        <div className="hidden items-center gap-14 md:flex">
           {rightLinks.map((link) => (
             <Link
               key={link.href}
@@ -76,8 +76,12 @@ export default function Navbar() {
               </span>
             )}
           </Link>
-          <button aria-label="Menu" className="text-[#1F3D2E]/80 transition hover:text-[#8DC63F]">
-            <Menu size={20} />
+          <button
+            aria-label="Toggle menu"
+            onClick={() => setMenuOpen((v) => !v)}
+            className="text-[#1F3D2E]/80 transition hover:text-[#8DC63F]"
+          >
+            {menuOpen ? <X size={20} /> : <Menu size={20} />}
           </button>
         </div>
 
@@ -124,6 +128,54 @@ export default function Navbar() {
           </Link>
         </div>
       )}
+
+      {/* Desktop menu overlay — always mounted (md+) so opacity/scale can
+          transition; hidden/inert while closed via pointer-events-none */}
+      <div
+        onClick={() => setMenuOpen(false)}
+        aria-hidden={!menuOpen}
+        className={`fixed inset-0 z-40 hidden items-center justify-center bg-[#1F3D2E]/70 backdrop-blur-md transition-opacity duration-300 md:flex ${
+          menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
+        }`}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          className={`relative w-full max-w-xl rounded-4xl bg-white/95 px-12 py-16 text-center shadow-2xl transition-all duration-300 ${
+            menuOpen ? "translate-y-0 scale-100" : "-translate-y-4 scale-95"
+          }`}
+        >
+          <button
+            aria-label="Close menu"
+            onClick={() => setMenuOpen(false)}
+            className="absolute right-6 top-6 text-[#1F3D2E]/60 transition hover:text-[#8DC63F]"
+          >
+            <X size={24} />
+          </button>
+
+          <span className="italic text-[#1F3D2E]/60">Explore</span>
+          <nav className="mt-6 flex flex-col items-center gap-5">
+            {[...leftLinks, ...rightLinks].map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                onClick={() => setMenuOpen(false)}
+                className="text-4xl text-[#1F3D2E] transition hover:text-[#8DC63F]"
+                style={{ fontFamily: "var(--font-script)" }}
+              >
+                {link.label}
+              </Link>
+            ))}
+            <Link
+              href="/sri-lanka/marketplace/cart"
+              onClick={() => setMenuOpen(false)}
+              className="text-4xl text-[#1F3D2E] transition hover:text-[#8DC63F]"
+              style={{ fontFamily: "var(--font-script)" }}
+            >
+              Cart{itemCount > 0 ? ` (${itemCount})` : ""}
+            </Link>
+          </nav>
+        </div>
+      </div>
     </header>
   );
 }

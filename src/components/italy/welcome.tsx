@@ -33,14 +33,14 @@ export default function Welcome() {
             Welcome to The Nest Bologna
           </h2>
 
-          <p className="mt-5 text-sm leading-relaxed text-slate-600 sm:text-base">
-            Tucked into a quiet residential corner of Bologna, The Nest is a cosy, 
+          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
+            Tucked into a quiet residential corner of Bologna, The Nest is a cosy,
             family-run stay built around one idea: arriving in Italy should feel like coming home.
           </p>
 
-          <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
-            Wake up minutes from Bologna&apos;s historic centre and reach Bologna 
-            Guglielmo Marconi Airport with ease — perfect for your first or last night 
+          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
+            Wake up minutes from Bologna&apos;s historic centre and reach Bologna
+            Guglielmo Marconi Airport with ease — perfect for your first or last night
             in the food capital of Italy, or as a relaxed base to explore Emilia-Romagna.
           </p>
 

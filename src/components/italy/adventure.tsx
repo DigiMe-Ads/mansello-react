@@ -36,10 +36,10 @@ export default function Adventure() {
         </p>
 
         <Link
-          href="/italy/book"
+          href="/italy/airbnb"
           className="mt-8 rounded-full bg-gradient-to-b from-[#8DC63F] to-[#6FA82E] px-10 py-4 text-base font-semibold text-[#1F3D2E] shadow-lg transition hover:from-[#7FB935] hover:to-[#5F9526]"
         >
-          Booking Now
+          Book Now
         </Link>
       </div>
     </section>

@@ -92,13 +92,6 @@ export default function TwoHomes() {
               ))}
             </div>
           </div>
-
-          <button
-            type="button"
-            className="mt-8 rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-[#1F3D2E] shadow-md transition hover:bg-[#72A62E]"
-          >
-            Discover More
-          </button>
         </div>
       </div>
     </section>

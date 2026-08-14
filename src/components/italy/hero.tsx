@@ -49,7 +49,7 @@ export default function ItalyHero() {
         </p>
 
         <Link
-          href="/italy/book"
+          href="/italy/airbnb"
           className="mx-auto mt-6 block w-fit rounded-full bg-[#8DC63F] px-10 py-4 text-base font-semibold text-[#1F3D2E] shadow-md transition hover:bg-[#72A62E]"
         >
           Book Your Stay

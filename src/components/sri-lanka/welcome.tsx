@@ -42,14 +42,14 @@ export default function Welcome() {
             Welcome to Dona&apos;s Villa
           </h2>
 
-          <p className="mt-5 text-sm leading-relaxed text-slate-600 sm:text-base">
-            Tucked away in the quiet fishing village of Pamunugama, between the Negombo 
-            lagoon and the Indian Ocean, Dona&apos;s Villa is a cosy, family-run 
+          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
+            Tucked away in the quiet fishing village of Pamunugama, between the Negombo
+            lagoon and the Indian Ocean, Dona&apos;s Villa is a cosy, family-run
             stay built around one idea: arriving in Sri Lanka should feel like coming home.
           </p>
 
-          <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">
-            Wake up to birdsong and reach Bandaranaike International Airport in around 30 minutes — 
+          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
+            Wake up to birdsong and reach Bandaranaike International Airport in around 30 minutes —
             perfect for your first or last night on the island, or as a relaxed base near Colombo and Negombo.
           </p>
 

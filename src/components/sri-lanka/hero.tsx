@@ -14,7 +14,8 @@ export default function SriLankaHero() {
         sizes="100vw"
         className="object-cover"
       />
-      <div className="absolute inset-0 bg-gradient-to-r from-black/40 via-black/10 to-transparent" />
+      <div className="absolute inset-0 bg-gradient-to-r from-black/60 via-black/40 to-black/10" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
 
       <Navbar />
 
@@ -49,7 +50,7 @@ export default function SriLankaHero() {
         </p>
 
         <Link
-          href="/sri-lanka/book"
+          href="/sri-lanka/airbnb"
           className="mx-auto mt-6 block w-fit rounded-full bg-[#8DC63F] px-10 py-4 text-base font-semibold text-[#1F3D2E] shadow-md transition hover:bg-[#72A62E]"
         >
           Book Your Stay

@@ -154,8 +154,8 @@ export default function Services() {
         <div className="relative z-10 ml-auto mt-16 h-20 w-full max-w-3xl sm:h-24">
           <div className="absolute right-0 top-0 h-40 w-full overflow-hidden rounded-full sm:h-48">
             <Image
-              src="/images/sri-lanka/services/donas-villa-garden-pathway.webp"
-              alt="Garden pathway at Dona's Villa"
+              src="/images/house.jpeg"
+              alt="Covered veranda at Dona's Villa"
               fill
               sizes="(min-width: 768px) 768px, 100vw"
               className="object-cover"

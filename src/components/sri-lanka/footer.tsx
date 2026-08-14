@@ -2,24 +2,25 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
 import { subscribeToNewsletter } from "@/lib/api/leads";
 import { ApiRequestError } from "@/lib/api/errors";
 
-const exploreLinks = ["About us", "BnB", "Transport", "Marketplace", "News"];
+const exploreLinks = [
+  { label: "About us", href: "/sri-lanka/about" },
+  { label: "BnB", href: "/sri-lanka/airbnb" },
+  { label: "Transport", href: "/sri-lanka/transport" },
+  { label: "Marketplace", href: "/sri-lanka/marketplace" },
+  { label: "Blogs", href: "/sri-lanka/blog" },
+];
+// No dedicated destination pages yet — all point to About for now.
 const destinationLinks = ["Kandy", "Ella", "Badulla", "Jaffna"];
 const legalLinks = [
-  "Terms & Condition",
-  "Privacy Policy",
-  "Contact",
-];
-
-const instagramPhotos = [
-  "/images/bg.webp",
-  "/images/sri-lanka/services/donas-villa-garden-pathway.webp",
-  "/images/sri-lanka/steps/offer-1.webp",
-  "/images/sri-lanka/services/donas-villa-garden-pathway.webp",
+  { label: "Terms & Condition", href: "/sri-lanka/terms" },
+  { label: "Privacy Policy", href: "/sri-lanka/privacy" },
+  { label: "Contact", href: "/sri-lanka/contact" },
 ];
 
 function FacebookIcon(props: SVGProps<SVGSVGElement>) {
@@ -98,7 +99,7 @@ export default function Footer() {
               </span>
             </h2>
             <p className="mt-3 text-sm text-white/90">
-              Sign up to searing weekly newsletter to get the latest updates.
+              Sign up to receive our weekly newsletter to get the latest updates.
             </p>
             {status === "success" && (
               <p className="mt-2 text-sm font-semibold text-white">Thanks for subscribing!</p>
@@ -197,16 +198,16 @@ export default function Footer() {
               <h3 className="text-lg font-bold text-[#153C4D]">Explore</h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
                 {exploreLinks.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
-                      {l}
-                    </a>
+                  <li key={l.label}>
+                    <Link href={l.href} className="transition hover:text-[#153C4D]">
+                      {l.label}
+                    </Link>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Destinations */}
+            {/* Destinations — no dedicated pages yet, so these point to About */}
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">
                 Destinations
@@ -214,9 +215,9 @@ export default function Footer() {
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
                 {destinationLinks.map((l) => (
                   <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
+                    <Link href="/sri-lanka/about" className="transition hover:text-[#153C4D]">
                       {l}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -226,13 +227,19 @@ export default function Footer() {
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">Legal</h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
-                {legalLinks.map((l) => (
-                  <li key={l}>
-                    <a href="#" className="transition hover:text-[#153C4D]">
-                      {l}
-                    </a>
-                  </li>
-                ))}
+                {legalLinks.map((l) =>
+                  l.href ? (
+                    <li key={l.label}>
+                      <Link href={l.href} className="transition hover:text-[#153C4D]">
+                        {l.label}
+                      </Link>
+                    </li>
+                  ) : (
+                    <li key={l.label} className="text-slate-400">
+                      {l.label}
+                    </li>
+                  )
+                )}
               </ul>
             </div>
 
@@ -254,8 +261,8 @@ export default function Footer() {
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Mail size={16} className="text-[#153C4D]" />
                 </span>
-                <a href="mailto:Mansellosrilanka@gmail.com" className="text-sm text-slate-700">
-                  Mansellosrilanka@gmail.com
+                <a href="mailto:info@mansello.com" className="text-sm text-slate-700">
+                  info@mansello.com
                 </a>
               </div>
               <div className="flex items-center gap-3">
@@ -271,29 +278,7 @@ export default function Footer() {
             </div>
           </div>
 
-          <div className="mt-14 border-t border-[#153C4D]/10 pt-10">
-            <h4 className="text-lg font-bold text-[#153C4D]">
-              Follow Instagram
-            </h4>
-            <div className="mt-4 flex gap-4">
-              {instagramPhotos.map((src, i) => (
-                <div
-                  key={i}
-                  className="relative h-20 w-20 shrink-0 overflow-hidden rounded-2xl shadow-sm sm:h-24 sm:w-24"
-                >
-                  <Image
-                    src={src}
-                    alt=""
-                    fill
-                    sizes="(min-width: 640px) 96px, 80px"
-                    className="object-cover"
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <p className="mt-14 text-center text-sm text-slate-500">
+          <p className="mt-14 border-t border-[#153C4D]/10 pt-10 text-center text-sm text-slate-500">
             © 2026 Mansello All Rights Reserved.
           </p>
         </div>

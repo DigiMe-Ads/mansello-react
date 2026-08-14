@@ -18,8 +18,8 @@ const contactItems = [
   {
     icon: Mail,
     label: "Email",
-    value: "Thenestbologna@gmail.com",
-    href: "mailto:Thenestbologna@gmail.com",
+    value: "info@mansello.com",
+    href: "mailto:info@mansello.com",
     color: "border-[#E1467C] text-[#E1467C]",
   },
   {
