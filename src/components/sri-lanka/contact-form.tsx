@@ -94,9 +94,9 @@ export default function ContactForm() {
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
               We&apos;d love to hear from you. Whether you&apos;re planning a
-              stay at Dona&apos;s Villa, arranging an airport transfer, or
-              asking about our Marketplace — the family is always here to
-              help.
+              stay at Dona&apos;s Villa, arranging an airport transfer,
+              asking about a tour package, or exploring our Marketplace — the
+              family is always here to help.
             </p>
 
             {sent ? (
@@ -133,6 +133,7 @@ export default function ContactForm() {
                   </option>
                   <option value="room_booking">Room Booking</option>
                   <option value="airport_transfer">Airport Transfer</option>
+                  <option value="tour_package">Tour Package</option>
                   <option value="marketplace">Marketplace</option>
                   <option value="other">Other</option>
                 </select>

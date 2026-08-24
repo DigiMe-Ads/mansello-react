@@ -9,7 +9,7 @@ export default function Airbnb() {
   return (
     <main>
       <PageHero
-        title="BnB"
+        title="Apartment"
         backgroundImage="/images/italy-bnb-bg.jpg"
         backgroundAlt="Front facade of The Nest Bologna"
         homeHref="/italy"

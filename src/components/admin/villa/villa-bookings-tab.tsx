@@ -9,18 +9,35 @@ import { cancelBooking, createOfflineBooking, listBookingsForProperty } from "@/
 import { ApiRequestError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
-import type { Booking } from "@/lib/api/types";
+import type { Booking, Room } from "@/lib/api/types";
 
 const STATUS_OPTIONS = ["", "pending_payment", "confirmed", "paid_offline", "cancelled", "completed"];
+
+// Bookings only carry room *ids* (`roomIds`) — resolve them to names against
+// the property's room list for display. Falls back to "Unknown room" for an
+// id that no longer matches (e.g. the room was since deleted).
+function roomNames(booking: Booking, rooms: Room[]): string | null {
+  if (!booking.roomIds?.length) return null;
+  // Include a short id fragment for an id that doesn't match any of the
+  // property's current rooms (deleted room, or a stale/mismatched
+  // reference) — "Unknown room" alone is a dead end; the id fragment at
+  // least lets staff cross-check it against the Rooms tab, which now shows
+  // each room's full id.
+  return booking.roomIds
+    .map((id) => rooms.find((r) => r.id === id)?.name ?? `Unknown room (${id.slice(0, 8)}…)`)
+    .join(", ");
+}
 
 export function VillaBookingsTab({
   propertyId,
   currency,
   cityTaxEnabled,
+  rooms = [],
 }: {
   propertyId: string;
   currency: string;
   cityTaxEnabled?: boolean;
+  rooms?: Room[];
 }) {
   const { authedFetch } = useAdminAuth();
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -74,6 +91,7 @@ export function VillaBookingsTab({
         <OfflineBookingForm
           propertyId={propertyId}
           cityTaxEnabled={cityTaxEnabled}
+          rooms={rooms}
           onCreated={() => {
             setShowOfflineForm(false);
             load();
@@ -116,7 +134,12 @@ export function VillaBookingsTab({
                       {formatDisplayDate(b.checkIn.slice(0, 10))} → {formatDisplayDate(b.checkOut.slice(0, 10))}
                     </td>
                     <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
-                      {b.guests} guest{b.guests > 1 ? "s" : ""} · {b.rooms} room{b.rooms > 1 ? "s" : ""}
+                      {b.guests} guest{b.guests > 1 ? "s" : ""}
+                      {roomNames(b, rooms) ? (
+                        <span className="mt-0.5 block text-xs text-slate-400">{roomNames(b, rooms)}</span>
+                      ) : (
+                        <> · {b.rooms} room{b.rooms > 1 ? "s" : ""}</>
+                      )}
                     </td>
                     <td className="border-t border-slate-100 px-4 py-3 font-semibold text-[#153C4D]">
                       {formatMoney(b.totalPrice, currency)}
@@ -186,10 +209,12 @@ export function VillaBookingsTab({
 function OfflineBookingForm({
   propertyId,
   cityTaxEnabled,
+  rooms: propertyRooms = [],
   onCreated,
 }: {
   propertyId: string;
   cityTaxEnabled?: boolean;
+  rooms?: Room[];
   onCreated: () => void;
 }) {
   const { authedFetch } = useAdminAuth();
@@ -200,10 +225,17 @@ function OfflineBookingForm({
   const [checkOut, setCheckOut] = useState("");
   const [guests, setGuests] = useState(1);
   const [rooms, setRooms] = useState(1);
+  const [roomIds, setRoomIds] = useState<string[]>([]);
   const [childrenUnder14, setChildrenUnder14] = useState(0);
   const [totalPriceOverride, setTotalPriceOverride] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const hasRooms = propertyRooms.length > 0;
+
+  function toggleRoomId(id: string) {
+    setRoomIds((prev) => (prev.includes(id) ? prev.filter((r) => r !== id) : [...prev, id]));
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -218,7 +250,8 @@ function OfflineBookingForm({
         checkIn,
         checkOut,
         guests,
-        rooms,
+        rooms: hasRooms ? roomIds.length : rooms,
+        roomIds: hasRooms ? roomIds : undefined,
         childrenUnder14: cityTaxEnabled ? childrenUnder14 : undefined,
         totalPriceOverride: totalPriceOverride ? Number(totalPriceOverride) : undefined,
       });
@@ -240,7 +273,9 @@ function OfflineBookingForm({
         <input required type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={ADMIN_INPUT} />
         <input required type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={ADMIN_INPUT} />
         <input required type="number" min={1} placeholder="Guests" value={guests} onChange={(e) => setGuests(Number(e.target.value))} className={ADMIN_INPUT} />
-        <input required type="number" min={1} placeholder="Rooms" value={rooms} onChange={(e) => setRooms(Number(e.target.value))} className={ADMIN_INPUT} />
+        {!hasRooms && (
+          <input required type="number" min={1} placeholder="Rooms" value={rooms} onChange={(e) => setRooms(Number(e.target.value))} className={ADMIN_INPUT} />
+        )}
         {cityTaxEnabled && (
           <input
             type="number"
@@ -254,9 +289,35 @@ function OfflineBookingForm({
         )}
         <input type="number" min={0} step="0.01" placeholder="Price override (optional)" value={totalPriceOverride} onChange={(e) => setTotalPriceOverride(e.target.value)} className={ADMIN_INPUT} />
       </div>
+
+      {hasRooms && (
+        <div className="mt-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Rooms</p>
+          <div className="mt-2 flex flex-wrap gap-2">
+            {propertyRooms.map((room) => (
+              <button
+                key={room.id}
+                type="button"
+                onClick={() => toggleRoomId(room.id)}
+                className={`rounded-full border px-4 py-1.5 text-xs font-semibold transition ${
+                  roomIds.includes(room.id)
+                    ? "border-[#153C4D] bg-[#153C4D] text-white"
+                    : "border-slate-300 text-slate-600 hover:border-slate-400"
+                }`}
+              >
+                {room.name}
+              </button>
+            ))}
+          </div>
+          {roomIds.length === 0 && (
+            <p className="mt-1 text-xs text-red-600">Pick at least one room.</p>
+          )}
+        </div>
+      )}
+
       <button
         type="submit"
-        disabled={submitting}
+        disabled={submitting || (hasRooms && roomIds.length === 0)}
         className="mt-4 rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
       >
         {submitting ? "Creating..." : "Create Booking"}

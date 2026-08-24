@@ -1,13 +1,24 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import Image from "next/image";
 import dynamic from "next/dynamic";
 import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePropertyBooking } from "./booking-provider";
 import { GuestDetailsForm } from "./guest-details-form";
 import { buildMonthGrid, formatDisplayDate, nextMonth, todayKey, type MonthGridData } from "@/lib/date";
-import { computeStayBreakdown, guestCountOptions, nightsBetween, roomOptionsForGuestCount } from "@/lib/api/pricing";
+import {
+  childrenOptionsForAdults,
+  computeRoomsStayBreakdown,
+  computeStayBreakdown,
+  guestCountOptions,
+  nightsBetween,
+  roomOptionsForGuestCount,
+  totalRoomCapacity,
+} from "@/lib/api/pricing";
 import { formatMoney } from "@/lib/currency";
+import { isRangeAvailable } from "@/lib/availability";
+import { isRenderableImageSrc } from "@/lib/image";
 
 // Stripe's SDK is only needed once a guest reaches the payment step, so it's
 // kept out of this page's initial JS bundle instead of loading for every
@@ -96,7 +107,18 @@ export function MonthGridView({
   );
 }
 
-export function BookingCalendarView({ confirmationPath }: { confirmationPath: string }) {
+export function BookingCalendarView({
+  confirmationPath,
+  guestFieldsMode = "guests",
+  showTransport = true,
+}: {
+  confirmationPath: string;
+  // "adults" splits the headcount picker into separate Adults + Children
+  // selects (children implied by the count, no extra step) instead of a
+  // single Guests total followed by a "how many of those are kids" select.
+  guestFieldsMode?: "guests" | "adults";
+  showTransport?: boolean;
+}) {
   const {
     property,
     loading,
@@ -108,10 +130,15 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
     guests,
     rooms,
     childrenUnder14,
+    selectedRoomIds,
+    roomBlockedDates,
+    offers,
     selectDay,
     setGuests,
     setRooms,
     setChildrenUnder14,
+    setGuestComposition,
+    toggleRoom,
     goToDetails,
   } = usePropertyBooking();
 
@@ -133,16 +160,63 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
   const firstGrid = buildMonthGrid(firstVisible.year, firstVisible.month);
   const secondGrid = buildMonthGrid(secondVisible.year, secondVisible.month);
 
-  const guestOptions = property ? guestCountOptions(property.pricingTiers) : [];
+  // Properties with individually-bookable rooms (e.g. Dona's Villa) price
+  // and pick differently from single-unit properties (The Nest Bologna):
+  // guest capacity comes from summing room capacities, price from summing
+  // the selected rooms' own rates, and the guest picks specific rooms
+  // instead of just a room *count*.
+  const hasRooms = Boolean(property?.rooms?.length);
+  const guestOptions = property
+    ? hasRooms
+      ? Array.from({ length: totalRoomCapacity(property.rooms!) }, (_, i) => i + 1)
+      : guestCountOptions(property.pricingTiers)
+    : [];
   const roomOptions = property ? roomOptionsForGuestCount(property.pricingTiers, guests) : [];
 
+  // Only meaningful in "adults" mode: total guests split into the two
+  // independently-picked counts, each always landing on a real pricing tier.
+  const adults = guests - childrenUnder14;
+  const adultsOptions = guestOptions;
+  const childrenOptions = property ? childrenOptionsForAdults(property.pricingTiers, adults) : [];
+
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
+  const rateOverrides = property?.rateOverrides ?? [];
   const stay =
     property && checkIn && checkOut
-      ? computeStayBreakdown(property.pricingTiers, checkIn, checkOut, guests, rooms, property, childrenUnder14)
+      ? hasRooms
+        ? computeRoomsStayBreakdown(
+            property.rooms!,
+            selectedRoomIds,
+            checkIn,
+            checkOut,
+            guests,
+            property,
+            childrenUnder14,
+            rateOverrides,
+            offers
+          )
+        : computeStayBreakdown(
+            property.pricingTiers,
+            checkIn,
+            checkOut,
+            guests,
+            rooms,
+            property,
+            childrenUnder14,
+            rateOverrides,
+            offers
+          )
       : null;
   const minNightsOk = !property || nights === 0 || nights >= property.minNights;
-  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk);
+
+  const selectedCapacity = hasRooms
+    ? (property?.rooms ?? []).filter((r) => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + r.capacity, 0)
+    : 0;
+  const selectedRoomsAvailable =
+    !checkIn || !checkOut || selectedRoomIds.every((id) => isRangeAvailable(roomBlockedDates.get(id) ?? new Set(), checkIn, checkOut));
+  const roomsValid = !hasRooms || (selectedRoomIds.length > 0 && selectedCapacity >= guests && selectedRoomsAvailable);
+
+  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk && roomsValid);
 
   if (loading) {
     return (
@@ -197,7 +271,23 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
             <div className="flex flex-col justify-center">
               {stay ? (
                 <>
-                  <p className="text-right text-2xl font-bold leading-tight text-[#153C4D] sm:text-[1.7rem]">
+                  {stay.discountAmount > 0 && (
+                    <div className="flex items-center justify-end gap-2">
+                      <p className="text-sm font-medium text-slate-400 line-through">
+                        {formatMoney(stay.grandTotal + stay.discountAmount, property.currency)}
+                      </p>
+                      {stay.discountPercentApplied !== undefined && (
+                        <span className="rounded-full bg-[#F5A623] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                          {stay.discountPercentApplied}% OFF
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  <p
+                    className={`text-right text-2xl font-bold leading-tight sm:text-[1.7rem] ${
+                      stay.discountAmount > 0 ? "text-[#F5A623]" : "text-[#153C4D]"
+                    }`}
+                  >
                     {formatMoney(stay.grandTotal, property.currency)}
                   </p>
                   <p className="mt-1 text-right text-sm font-medium text-[#153C4D]">
@@ -248,24 +338,76 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
                     </span>
                   </div>
                 </div>
-                <div className="border-t border-slate-100 bg-white px-4 py-3">
-                  <span className="block text-xs font-medium text-slate-400">Guests</span>
-                  <div className="relative mt-0.5">
-                    <select
-                      value={guests}
-                      onChange={(e) => setGuests(Number(e.target.value))}
-                      className="w-full appearance-none bg-transparent text-sm font-semibold text-[#153C4D] outline-none"
-                    >
-                      {guestOptions.map((g) => (
-                        <option key={g} value={g}>
-                          {g} Guest{g > 1 ? "s" : ""}
-                        </option>
-                      ))}
-                    </select>
-                    <ChevronDown size={16} className="pointer-events-none absolute right-0 top-1 shrink-0 text-slate-400" />
+                {guestFieldsMode === "adults" ? (
+                  <>
+                    <div className="border-t border-slate-100 bg-white px-4 py-3">
+                      <span className="block text-xs font-medium text-slate-400">Adults</span>
+                      <div className="relative mt-0.5">
+                        <select
+                          value={adults}
+                          onChange={(e) => {
+                            const nextAdults = Number(e.target.value);
+                            const validChildren = property
+                              ? childrenOptionsForAdults(property.pricingTiers, nextAdults)
+                              : [];
+                            const nextChildren = validChildren.includes(childrenUnder14)
+                              ? childrenUnder14
+                              : 0;
+                            setGuestComposition(nextAdults, nextChildren);
+                          }}
+                          className="w-full appearance-none bg-transparent text-sm font-semibold text-[#153C4D] outline-none"
+                        >
+                          {adultsOptions.map((a) => (
+                            <option key={a} value={a}>
+                              {a} Adult{a > 1 ? "s" : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="pointer-events-none absolute right-0 top-1 shrink-0 text-slate-400" />
+                      </div>
+                    </div>
+                    <div className="border-t border-slate-100 bg-white px-4 py-3">
+                      <span className="block text-xs font-medium text-slate-400">
+                        Children
+                        {property.cityTaxEnabled &&
+                          ` (under ${property.cityTaxExemptAgeUnder ?? 14}, no city tax)`}
+                      </span>
+                      <div className="relative mt-0.5">
+                        <select
+                          value={childrenUnder14}
+                          onChange={(e) => setGuestComposition(adults, Number(e.target.value))}
+                          className="w-full appearance-none bg-transparent text-sm font-semibold text-[#153C4D] outline-none"
+                        >
+                          {childrenOptions.map((c) => (
+                            <option key={c} value={c}>
+                              {c} Child{c === 1 ? "" : "ren"}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={16} className="pointer-events-none absolute right-0 top-1 shrink-0 text-slate-400" />
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <div className="border-t border-slate-100 bg-white px-4 py-3">
+                    <span className="block text-xs font-medium text-slate-400">Guests</span>
+                    <div className="relative mt-0.5">
+                      <select
+                        value={guests}
+                        onChange={(e) => setGuests(Number(e.target.value))}
+                        className="w-full appearance-none bg-transparent text-sm font-semibold text-[#153C4D] outline-none"
+                      >
+                        {guestOptions.map((g) => (
+                          <option key={g} value={g}>
+                            {g} Guest{g > 1 ? "s" : ""}
+                          </option>
+                        ))}
+                      </select>
+                      <ChevronDown size={16} className="pointer-events-none absolute right-0 top-1 shrink-0 text-slate-400" />
+                    </div>
                   </div>
-                </div>
-                {roomOptions.length > 1 && (
+                )}
+                {!hasRooms && roomOptions.length > 1 && (
                   <div className="border-t border-slate-100 bg-white px-4 py-3">
                     <span className="block text-xs font-medium text-slate-400">Rooms</span>
                     <div className="relative mt-0.5">
@@ -284,7 +426,7 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
                     </div>
                   </div>
                 )}
-                {property.cityTaxEnabled && (
+                {property.cityTaxEnabled && guestFieldsMode !== "adults" && (
                   <div className="border-t border-slate-100 bg-white px-4 py-3">
                     <span className="block text-xs font-medium text-slate-400">
                       Children under {property.cityTaxExemptAgeUnder ?? 14} (no city tax)
@@ -307,6 +449,64 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
                 )}
               </div>
 
+              {hasRooms && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-slate-400">
+                    Choose Room{selectedRoomIds.length > 1 ? "s" : ""} ({selectedCapacity}/{guests} guests covered)
+                  </p>
+                  <div className="mt-2 flex flex-col gap-2">
+                    {property.rooms!.map((room) => {
+                      const blocked =
+                        checkIn && checkOut
+                          ? !isRangeAvailable(roomBlockedDates.get(room.id) ?? new Set(), checkIn, checkOut)
+                          : false;
+                      const selected = selectedRoomIds.includes(room.id);
+                      const thumb = room.images[0];
+                      return (
+                        <button
+                          type="button"
+                          key={room.id}
+                          disabled={blocked}
+                          onClick={() => toggleRoom(room.id)}
+                          className={`flex items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                            blocked
+                              ? "cursor-not-allowed border-slate-100 opacity-50"
+                              : selected
+                                ? "border-[#8DC63F] bg-[#8DC63F]/5"
+                                : "border-slate-200 hover:border-slate-300"
+                          }`}
+                        >
+                          <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl bg-slate-100">
+                            {thumb && isRenderableImageSrc(thumb) && (
+                              <Image src={thumb} alt={room.name} fill sizes="56px" className="object-cover" />
+                            )}
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-semibold text-[#153C4D]">{room.name}</p>
+                            <p className="text-xs text-slate-500">
+                              {room.subtitle} · Sleeps {room.capacity}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-sm font-semibold text-[#153C4D]">
+                              {formatMoney(Number(room.pricePerNight), property.currency)}
+                            </p>
+                            <p className="text-[10px] text-slate-400">/night</p>
+                            {blocked && <p className="text-[10px] font-semibold text-red-500">Booked</p>}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                  {selectedRoomIds.length > 0 && selectedCapacity < guests && (
+                    <p className="mt-2 text-xs text-red-600">
+                      Selected room{selectedRoomIds.length > 1 ? "s" : ""} sleep{selectedRoomIds.length === 1 ? "s" : ""} only{" "}
+                      {selectedCapacity} — pick enough rooms for {guests} guests.
+                    </p>
+                  )}
+                </div>
+              )}
+
               <button
                 type="button"
                 disabled={!canReserve}
@@ -319,7 +519,7 @@ export function BookingCalendarView({ confirmationPath }: { confirmationPath: st
           </div>
         )}
 
-        {step === "details" && <GuestDetailsForm />}
+        {step === "details" && <GuestDetailsForm showTransport={showTransport} />}
         {step === "payment" && <PaymentStep confirmationPath={confirmationPath} />}
       </div>
     </section>

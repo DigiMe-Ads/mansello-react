@@ -11,12 +11,16 @@ export interface CartItem {
   image: string | null;
   quantity: number;
   maxStock: number | null;
+  // kg per single unit — drives the weight-based shipping fee at checkout.
+  // 0 for products created before this field existed.
+  unitWeightKg: number;
 }
 
 interface CartState {
   items: CartItem[];
   itemCount: number;
   subtotal: number;
+  totalWeightKg: number;
   addItem: (product: Product, quantity?: number) => void;
   removeItem: (productId: string) => void;
   setQuantity: (productId: string, quantity: number) => void;
@@ -74,6 +78,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           image: isRenderableImageSrc(product.images[0]) ? product.images[0] : null,
           quantity: maxStock != null ? Math.min(quantity, maxStock) : quantity,
           maxStock,
+          unitWeightKg: Number(product.weightKg ?? 0),
         },
       ];
     });
@@ -101,7 +106,8 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const value = useMemo<CartState>(() => {
     const itemCount = items.reduce((sum, i) => sum + i.quantity, 0);
     const subtotal = items.reduce((sum, i) => sum + i.priceUsd * i.quantity, 0);
-    return { items, itemCount, subtotal, addItem, removeItem, setQuantity, clear };
+    const totalWeightKg = items.reduce((sum, i) => sum + i.unitWeightKg * i.quantity, 0);
+    return { items, itemCount, subtotal, totalWeightKg, addItem, removeItem, setQuantity, clear };
   }, [items]);
 
   return <CartContext.Provider value={value}>{children}</CartContext.Provider>;

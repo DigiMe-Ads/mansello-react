@@ -26,7 +26,7 @@ const cards: ServiceCard[] = [
     iconAlt: "Airport to bed and breakfast transfer icon",
     title: "Airport → B&B Transfer",
     description:
-      "Private pick-up from Bologna Guglielmo Marconi Airport straight to your room. Contact us for a fixed quote - no haggling, no waiting.",
+      "Private pick-up from Bologna Guglielmo Marconi Airport straight to your room. Contact us for a flat-rate quote - no haggling, no waiting.",
   },
   {
     step: "03",
@@ -35,7 +35,7 @@ const cards: ServiceCard[] = [
     iconAlt: "Bed and breakfast to airport transfer icon",
     title: "B&B → Airport Transfer",
     description:
-      "Guaranteed on-time drop-off for your departure flight. Fixed quote, arranged the night before.",
+      "Guaranteed on-time drop-off for your departure flight. Flat-rate quote, arranged the night before.",
   },
   {
     step: "04",

@@ -6,7 +6,7 @@ export default function TransportIntro() {
       <div className="relative mx-auto max-w-3xl text-center">
         <h2 className="text-3xl font-bold sm:text-4xl">
           <span className="text-[#F5A623]">Airport Transfers &amp;</span>{" "}
-          <span className="text-white">Private Transport</span>
+          <span className="text-white">Tour Packages</span>
         </h2>
 
         {/* Faint decorative flight-path doodle */}

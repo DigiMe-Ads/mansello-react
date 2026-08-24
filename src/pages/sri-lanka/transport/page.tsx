@@ -8,7 +8,7 @@ export default function Transport() {
   return (
     <main>
       <PageHero
-        title="Transport"
+        title="Transport & Tour Packages"
         backgroundImage="/images/sri-lanka/transport/hero-transport.webp"
         backgroundAlt="F9 arches train passing through a lush green landscape in Sri Lanka"
         homeHref="/sri-lanka"

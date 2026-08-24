@@ -23,19 +23,19 @@ const cards: ServiceCard[] = [
     step: "02",
     ribbonColor: "#F0A93A",
     icon: "/images/sri-lanka/services/icon-airport-to-bnb-transfer.webp",
-    iconAlt: "Airport to bed and breakfast transfer icon",
-    title: "Airport → B&B Transfer",
+    iconAlt: "Airport to villa transfer icon",
+    title: "Airport → Villa Transfer",
     description:
-      "Private pick-up from Bandaranaike International Airport straight to your room. Fixed price $29.99 - no haggling, no waiting.",
+      "Private pick-up from Bandaranaike International Airport straight to your room - no haggling, no waiting.",
   },
   {
     step: "03",
     ribbonColor: "#7BC142",
     icon: "/images/sri-lanka/services/icon-bnb-to-airport-transfer.webp",
-    iconAlt: "Bed and breakfast to airport transfer icon",
-    title: "B&B → Airport Transfer",
+    iconAlt: "Villa to airport transfer icon",
+    title: "Villa → Airport Transfer",
     description:
-      "Guaranteed on-time drop-off for your departure flight. Fixed price $29.99, arranged the night before.",
+      "Guaranteed on-time drop-off for your departure flight, arranged the night before.",
   },
   {
     step: "04",

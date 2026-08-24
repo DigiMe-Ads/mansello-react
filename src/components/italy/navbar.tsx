@@ -9,15 +9,15 @@ import { SiteSearch, type SearchablePage } from "@/components/site-search";
 const leftLinks = [
   { label: "Home", href: "/" },
   { label: "About", href: "/italy/about" },
-  { label: "BnB", href: "/italy/airbnb" },
+  { label: "Apartment", href: "/italy/airbnb" },
 ];
 
 const rightLinks = [{ label: "Contact", href: "/italy/contact" }];
 
 const searchablePages: SearchablePage[] = [
-  { title: "Home", description: "The Nest Bologna — Bed & Breakfast in Bologna", href: "/" },
+  { title: "Home", description: "The Nest Bologna — Self-Catering Apartment in Bologna", href: "/" },
   { title: "About", description: "Our story and the two Mansello homes", href: "/italy/about" },
-  { title: "BnB", description: "Rooms, pricing and live availability", href: "/italy/airbnb" },
+  { title: "Apartment", description: "Rooms, pricing and live availability", href: "/italy/airbnb" },
   { title: "Contact", description: "Get in touch or send a message", href: "/italy/contact" },
   { title: "Blog", description: "Tips, guides and stories from Bologna", href: "/italy/blog" },
 ];
@@ -27,7 +27,7 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-1/2 z-50 w-[92%] max-w-6xl -translate-x-1/2">
-      <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white/95 px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
+      <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
         {/* Left links */}
         <nav className="hidden items-center gap-30 md:flex">
           {leftLinks.map((link) => (

@@ -1,19 +1,31 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
-import { createOrder } from "@/lib/api/marketplace";
+import { createOrder, getShippingRates } from "@/lib/api/marketplace";
 import { ApiRequestError, isValidationError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
+import { computeShippingFee } from "@/lib/shipping";
 import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
+import type { ShippingRate } from "@/lib/api/types";
 
 export default function CheckoutPage() {
-  const { items, subtotal, clear } = useCart();
+  const { items, subtotal, totalWeightKg, clear } = useCart();
   const router = useRouter();
+
+  const [shippingRates, setShippingRates] = useState<ShippingRate[] | null>(null);
+
+  useEffect(() => {
+    // Best-effort — falls back to the flat fee below if this 404s (endpoint
+    // not live yet) or hasn't resolved by render time.
+    getShippingRates()
+      .then(setShippingRates)
+      .catch(() => setShippingRates([]));
+  }, []);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -23,7 +35,8 @@ export default function CheckoutPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const shippingFee = items.length > 0 ? FLAT_SHIPPING_FEE : 0;
+  const computedFee = shippingRates?.length ? computeShippingFee(shippingRates, totalWeightKg) : null;
+  const shippingFee = items.length === 0 ? 0 : (computedFee ?? FLAT_SHIPPING_FEE);
   const total = subtotal + shippingFee;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -96,7 +109,7 @@ export default function CheckoutPage() {
           <form onSubmit={handleSubmit} className="flex flex-col gap-4">
             <h2 className="text-lg font-bold text-[#153C4D]">Delivery details</h2>
             <p className="text-sm text-slate-500">
-              Cash on delivery — we&apos;ll call you to confirm before dispatching.
+              Cash on delivery — we&apos;ll call you to confirm before shipping.
             </p>
 
             {submitError && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{submitError}</p>}

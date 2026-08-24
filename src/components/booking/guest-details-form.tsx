@@ -4,7 +4,7 @@ import { useState } from "react";
 import { usePropertyBooking } from "./booking-provider";
 import type { TransportType } from "@/lib/api/types";
 
-export function GuestDetailsForm() {
+export function GuestDetailsForm({ showTransport = true }: { showTransport?: boolean }) {
   const { submitGuestDetails, submitting, submitError, fieldErrors, backToSelect, checkIn } = usePropertyBooking();
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -102,51 +102,55 @@ export function GuestDetailsForm() {
           />
         </div>
 
-        <label className="mt-1 flex items-center gap-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700">
-          <input
-            type="checkbox"
-            checked={wantsTransport}
-            onChange={(e) => setWantsTransport(e.target.checked)}
-          />
-          Add an airport transfer?
-        </label>
+        {showTransport && (
+          <>
+            <label className="mt-1 flex items-center gap-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700">
+              <input
+                type="checkbox"
+                checked={wantsTransport}
+                onChange={(e) => setWantsTransport(e.target.checked)}
+              />
+              Add an airport transfer?
+            </label>
 
-        {wantsTransport && (
-          <div className="rounded-2xl border border-slate-200 p-4">
-            <div className="grid grid-cols-2 gap-3">
-              <select
-                value={transportType}
-                onChange={(e) => setTransportType(e.target.value as TransportType)}
-                className="col-span-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
-              >
-                <option value="fixed_price">Fixed-Price Transfer</option>
-                <option value="custom_quote">Custom Quote</option>
-              </select>
-              <input
-                type="date"
-                value={transportDate}
-                onChange={(e) => setTransportDate(e.target.value)}
-                className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
-              />
-              <input
-                type="text"
-                placeholder="Flight number (optional)"
-                value={transportFlightNumber}
-                onChange={(e) => setTransportFlightNumber(e.target.value)}
-                className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-              />
-              <textarea
-                placeholder="Notes (optional) — e.g. arrival & departure details"
-                rows={2}
-                value={transportNotes}
-                onChange={(e) => setTransportNotes(e.target.value)}
-                className="col-span-2 resize-none rounded-2xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-              />
-            </div>
-            <p className="mt-2 text-xs text-slate-400">
-              We&apos;ll reach out to confirm your transfer separately — passenger count is taken from your booking.
-            </p>
-          </div>
+            {wantsTransport && (
+              <div className="rounded-2xl border border-slate-200 p-4">
+                <div className="grid grid-cols-2 gap-3">
+                  <select
+                    value={transportType}
+                    onChange={(e) => setTransportType(e.target.value as TransportType)}
+                    className="col-span-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
+                  >
+                    <option value="fixed_price">Flat-Rate Transfer</option>
+                    <option value="custom_quote">Custom Quote</option>
+                  </select>
+                  <input
+                    type="date"
+                    value={transportDate}
+                    onChange={(e) => setTransportDate(e.target.value)}
+                    className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Flight number (optional)"
+                    value={transportFlightNumber}
+                    onChange={(e) => setTransportFlightNumber(e.target.value)}
+                    className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                  />
+                  <textarea
+                    placeholder="Notes (optional) — e.g. arrival & departure details"
+                    rows={2}
+                    value={transportNotes}
+                    onChange={(e) => setTransportNotes(e.target.value)}
+                    className="col-span-2 resize-none rounded-2xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                  />
+                </div>
+                <p className="mt-2 text-xs text-slate-400">
+                  We&apos;ll reach out to confirm your transfer separately — passenger count is taken from your booking.
+                </p>
+              </div>
+            )}
+          </>
         )}
 
         <button

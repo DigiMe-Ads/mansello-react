@@ -11,12 +11,13 @@ export default function Marketplace() {
   return (
     <main>
       <MarketplaceHero />
-      <MarketplaceCategories />
-      <BrandsTrust />
-      <HowItWorks />
-      {/* Shared provider so Deal of the Day and Best Products show the same
-          catalog data — one fetch, one source of truth. */}
+      {/* Shared provider so the featured-categories section, Deal of the
+          Day, and Best Products all show the same catalog data (one fetch)
+          and share the same category filter/selection state. */}
       <MarketplaceProvider>
+        <MarketplaceCategories />
+        <BrandsTrust />
+        <HowItWorks />
         <DealOfTheDay />
         <BestProducts />
       </MarketplaceProvider>

@@ -6,7 +6,7 @@ import { ADMIN_INPUT } from "@/components/admin/input-styles";
 import { createManualBlock, getAvailability, releaseBlock } from "@/lib/api/availability";
 import { ApiRequestError } from "@/lib/api/errors";
 import { addDaysToKey, formatDisplayDate, todayKey } from "@/lib/date";
-import type { AvailabilityBlock } from "@/lib/api/types";
+import type { AvailabilityBlock, Room } from "@/lib/api/types";
 
 const SOURCE_LABELS: Record<string, string> = {
   direct: "Direct booking",
@@ -20,7 +20,7 @@ const SOURCE_COLORS: Record<string, string> = {
   manual: "bg-slate-200 text-slate-700",
 };
 
-export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
+export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string; rooms?: Room[] }) {
   const { authedFetch } = useAdminAuth();
   const [blocks, setBlocks] = useState<AvailabilityBlock[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,7 +55,7 @@ export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
 
   return (
     <div className="flex flex-col gap-6">
-      <NewBlockForm propertyId={propertyId} onCreated={load} />
+      <NewBlockForm propertyId={propertyId} rooms={rooms} onCreated={load} />
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
       {loading && <p className="text-sm text-slate-500">Loading...</p>}
@@ -66,6 +66,7 @@ export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
             <thead>
               <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
                 <th className="px-4 py-3">Source</th>
+                {rooms.length > 0 && <th className="px-4 py-3">Room</th>}
                 <th className="px-4 py-3">Dates</th>
                 <th className="px-4 py-3" />
               </tr>
@@ -73,7 +74,10 @@ export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
             <tbody>
               {blocks.length === 0 && (
                 <tr>
-                  <td colSpan={3} className="border-t border-slate-100 px-4 py-6 text-center text-slate-400">
+                  <td
+                    colSpan={rooms.length > 0 ? 4 : 3}
+                    className="border-t border-slate-100 px-4 py-6 text-center text-slate-400"
+                  >
                     No blocked dates in the next 12 months.
                   </td>
                 </tr>
@@ -85,6 +89,11 @@ export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
                       {SOURCE_LABELS[block.source]}
                     </span>
                   </td>
+                  {rooms.length > 0 && (
+                    <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
+                      {block.roomId ? (rooms.find((r) => r.id === block.roomId)?.name ?? "Unknown room") : "Whole property"}
+                    </td>
+                  )}
                   <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
                     {formatDisplayDate(block.startDate.slice(0, 10))} → {formatDisplayDate(block.endDate.slice(0, 10))}
                   </td>
@@ -109,11 +118,20 @@ export function VillaBlocksTab({ propertyId }: { propertyId: string }) {
   );
 }
 
-function NewBlockForm({ propertyId, onCreated }: { propertyId: string; onCreated: () => void }) {
+function NewBlockForm({
+  propertyId,
+  rooms,
+  onCreated,
+}: {
+  propertyId: string;
+  rooms: Room[];
+  onCreated: () => void;
+}) {
   const { authedFetch } = useAdminAuth();
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [reason, setReason] = useState("");
+  const [roomId, setRoomId] = useState(""); // "" = whole property
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,10 +140,16 @@ function NewBlockForm({ propertyId, onCreated }: { propertyId: string; onCreated
     setSubmitting(true);
     setError(null);
     try {
-      await createManualBlock(authedFetch, propertyId, { startDate, endDate, reason: reason || undefined });
+      await createManualBlock(authedFetch, propertyId, {
+        startDate,
+        endDate,
+        reason: reason || undefined,
+        roomId: roomId || undefined,
+      });
       setStartDate("");
       setEndDate("");
       setReason("");
+      setRoomId("");
       onCreated();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Failed to create block");
@@ -139,6 +163,16 @@ function NewBlockForm({ propertyId, onCreated }: { propertyId: string; onCreated
       <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Add Manual Block</h3>
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="mt-4 flex flex-wrap items-center gap-3">
+        {rooms.length > 0 && (
+          <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className={ADMIN_INPUT}>
+            <option value="">Whole property</option>
+            {rooms.map((r) => (
+              <option key={r.id} value={r.id}>
+                {r.name}
+              </option>
+            ))}
+          </select>
+        )}
         <input
           required
           type="date"

@@ -24,7 +24,7 @@ const villaImages = [
 ];
 
 const highlights = [
-  "Rooms for 1–6 guests, from $18 per night",
+  "Rooms for 1–6 guests",
   "30 minutes from Colombo Airport (CMB)",
   "Airport pick-up and drop-off available",
   "Air-conditioned rooms",

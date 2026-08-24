@@ -10,12 +10,12 @@ import { ApiRequestError } from "@/lib/api/errors";
 
 const exploreLinks = [
   { label: "About us", href: "/italy/about" },
-  { label: "Air B&B", href: "/italy/airbnb" },
+  { label: "Apartment", href: "/italy/airbnb" },
   // { label: "Transport", href: "/italy/transport" },
   { label: "News", href: "/italy/blog" },
 ];
 // No dedicated destination pages yet — all point to About for now.
-const destinationLinks = ["Modena", "Ferrara", "Florence", "Venice"];
+const destinationLinks = ["Modena", "Ferrara", "Florence", "Venice", "Rome", "Naples"];
 const legalLinks = [
   { label: "Terms & Condition", href: "/italy/terms" },
   { label: "Privacy Policy", href: "/italy/privacy" },
@@ -161,8 +161,7 @@ export default function Footer() {
                 />
               </div>
               <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-slate-600">
-                Family-run Bed &amp; Breakfast in Bologna with fixed-price
-                airport transfers and a taste of Sri Lanka.
+                Family-run apartment in Bologna with transparent pricing and a cosy home-away-from-home feel.
               </p>
               <div className="mt-4 flex gap-3">
                 <a
@@ -277,6 +276,11 @@ export default function Footer() {
                   40128 Bologna, Italy
                 </span>
               </div>
+              <p className="text-xs text-slate-400">
+                CIR: 037006-AT-04671
+                <br />
+                CIN: IT037006C2EECVHFLU
+              </p>
             </div>
           </div>
 

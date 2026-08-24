@@ -2,13 +2,12 @@ import Image from "next/image";
 
 const leftReasons = [
   "Family-run, guest-first - you deal directly with the hosts, not a call centre",
-  "Fixed, honest pricing - rooms from 85€, no hidden fees",
-  "Support before and during your stay - reach us any time on WhatsApp",
+  "Transparent, honest pricing - no hidden fees",
 ];
 
 const rightReasons = [
-  "Airport convenience - easy reach of BLQ, with door-to-door transfers",
   "Two countries, one standard - the same care at our villa in Sri Lanka",
+  "Support before and during your stay - reach us any time on WhatsApp",
 ];
 
 export default function WhyChoose() {
@@ -46,7 +45,7 @@ export default function WhyChoose() {
               Why Choose Mansello?
             </h2>
 
-            <div className="mt-8 grid grid-flow-col grid-rows-3 gap-x-10 gap-y-5 sm:grid-cols-2">
+            <div className="mt-8 grid grid-flow-col grid-rows-2 gap-x-10 gap-y-5 sm:grid-cols-2">
               {leftReasons.map((reason) => (
                 <div key={reason} className="flex items-start gap-3">
                   <span className="mt-1 h-6 w-6 shrink-0 rounded-full bg-[#F5A623]" />

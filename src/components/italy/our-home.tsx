@@ -48,7 +48,7 @@ export default function OurHome() {
         <p className="relative mt-6 text-sm leading-relaxed text-slate-500 sm:text-base">
           The Nest Bologna sits in a quiet residential corner of Bologna, within easy reach of 
           the historic centre and Bologna Guglielmo Marconi Airport. We welcome travellers arriving 
-          into Emilia-Romagna with a cosy appartment retreat and dependable airport transfers — so your 
+          into Emilia-Romagna with a cosy appartment retreat, so your 
           first and last days in Italy are as relaxed as everything in between.
         </p>
 

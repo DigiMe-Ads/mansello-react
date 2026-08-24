@@ -11,7 +11,7 @@ const services = [
     icon: "/images/sri-lanka/about/services/prices.webp",
     title: "Honest Pricing",
     description:
-      "Clear room rates and fixed transfer prices, published upfront. What you see is exactly what you pay.",
+      "Clear room rates and transparent transfer pricing, published upfront. What you see is exactly what you pay.",
   },
   {
     icon: "/images/sri-lanka/about/services/knowledge.webp",

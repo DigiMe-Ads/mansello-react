@@ -9,15 +9,21 @@ import {
   adjustStock,
   createCategory,
   createProduct,
+  deleteCategory,
+  deleteProduct,
   getCategories,
-  getProducts,
+  getProductsAdmin,
+  getShippingRates,
   listLowStock,
+  updateCategory,
   updateProduct,
+  updateShippingRates,
   uploadProductImages,
 } from "@/lib/api/marketplace";
-import { ApiRequestError } from "@/lib/api/errors";
+import { uploadImages } from "@/lib/api/uploads";
+import { ApiRequestError, isConflict } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
-import type { Category, LowStockItem, Product } from "@/lib/api/types";
+import type { Category, LowStockItem, Product, ShippingRate } from "@/lib/api/types";
 
 export default function AdminProductsPage() {
   return (
@@ -42,7 +48,7 @@ function ProductsContent() {
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getProducts(), getCategories(), listLowStock(authedFetch)])
+    Promise.all([getProductsAdmin(authedFetch), getCategories(), listLowStock(authedFetch)])
       .then(([prods, cats, low]) => {
         setProducts(prods);
         setCategories(cats);
@@ -83,10 +89,19 @@ function ProductsContent() {
 
       {showCategoryForm && (
         <CreateCategoryForm
+          featuredCount={categories.filter((c) => c.featured).length}
           onCreated={() => {
             setShowCategoryForm(false);
             load();
           }}
+        />
+      )}
+
+      {categories.length > 0 && (
+        <CategoryList
+          categories={categories}
+          products={products}
+          onChanged={load}
         />
       )}
 
@@ -95,6 +110,8 @@ function ProductsContent() {
           No categories exist yet — click &quot;+ New Category&quot; above before creating a product.
         </p>
       )}
+
+      <ShippingRatesSection />
 
       {lowStock.length > 0 && (
         <div className="rounded-2xl bg-amber-50 p-4">
@@ -135,7 +152,7 @@ function ProductsContent() {
               {products.length === 0 && (
                 <tr>
                   <td colSpan={6} className="border-t border-slate-100 px-4 py-6 text-center text-slate-400">
-                    No active products yet.
+                    No products yet.
                   </td>
                 </tr>
               )}
@@ -143,6 +160,7 @@ function ProductsContent() {
                 <ProductRow
                   key={product.id}
                   product={product}
+                  categories={categories}
                   editing={editingId === product.id}
                   adjusting={adjustingId === product.id}
                   onToggleEdit={() => setEditingId(editingId === product.id ? null : product.id)}
@@ -160,6 +178,7 @@ function ProductsContent() {
 
 function ProductRow({
   product,
+  categories,
   editing,
   adjusting,
   onToggleEdit,
@@ -167,14 +186,49 @@ function ProductRow({
   onChanged,
 }: {
   product: Product;
+  categories: Category[];
   editing: boolean;
   adjusting: boolean;
   onToggleEdit: () => void;
   onToggleAdjust: () => void;
   onChanged: () => void;
 }) {
+  const { authedFetch } = useAdminAuth();
   const stock = product.stockLevel;
   const lowStock = stock && stock.quantityOnHand <= stock.lowStockThreshold;
+
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [blockedByOrders, setBlockedByOrders] = useState(false);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteProduct(authedFetch, product.id);
+      onChanged();
+    } catch (err) {
+      setConfirmingDelete(false);
+      setBlockedByOrders(isConflict(err));
+      setDeleteError(err instanceof ApiRequestError ? err.message : "Failed to delete product");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  async function handleDeactivateInstead() {
+    setDeleting(true);
+    try {
+      await updateProduct(authedFetch, product.id, { active: false });
+      setDeleteError(null);
+      onChanged();
+    } catch (err) {
+      setDeleteError(err instanceof ApiRequestError ? err.message : "Failed to deactivate product");
+    } finally {
+      setDeleting(false);
+    }
+  }
 
   return (
     <>
@@ -200,16 +254,60 @@ function ProductRow({
           </span>
         </td>
         <td className="border-t border-slate-100 px-4 py-3 text-right">
-          <div className="flex justify-end gap-3">
+          <div className="flex justify-end items-center gap-3">
             <button type="button" onClick={onToggleAdjust} className="text-xs font-semibold text-[#153C4D] hover:underline">
               Stock
             </button>
             <button type="button" onClick={onToggleEdit} className="text-xs font-semibold text-[#153C4D] hover:underline">
               Edit
             </button>
+            {confirmingDelete ? (
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-60"
+                >
+                  {deleting ? "Deleting..." : "Confirm?"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="text-xs font-semibold text-slate-400 hover:underline"
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="text-xs font-semibold text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+            )}
           </div>
         </td>
       </tr>
+      {deleteError && (
+        <tr>
+          <td colSpan={6} className="border-t border-slate-100 bg-red-50 px-4 py-3">
+            <p className="text-xs text-red-700">{deleteError}</p>
+            {blockedByOrders && (
+              <button
+                type="button"
+                onClick={handleDeactivateInstead}
+                disabled={deleting}
+                className="mt-2 text-xs font-semibold text-[#153C4D] hover:underline disabled:opacity-60"
+              >
+                {deleting ? "Deactivating..." : "Deactivate instead"}
+              </button>
+            )}
+          </td>
+        </tr>
+      )}
       {adjusting && (
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
@@ -220,7 +318,7 @@ function ProductRow({
       {editing && (
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
-            <EditProductForm product={product} onDone={onChanged} />
+            <EditProductForm product={product} categories={categories} onDone={onChanged} />
           </td>
         </tr>
       )}
@@ -228,21 +326,276 @@ function ProductRow({
   );
 }
 
-function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
+function CategoryList({
+  categories,
+  products,
+  onChanged,
+}: {
+  categories: Category[];
+  products: Product[];
+  onChanged: () => void;
+}) {
+  const featuredCount = categories.filter((c) => c.featured).length;
+
+  return (
+    <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
+      <table className="w-full border-separate border-spacing-0 text-sm">
+        <thead>
+          <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
+            <th className="px-4 py-3">Category</th>
+            <th className="px-4 py-3">Products</th>
+            <th className="px-4 py-3">Featured</th>
+            <th className="px-4 py-3" />
+          </tr>
+        </thead>
+        <tbody>
+          {categories.map((category) => (
+            <CategoryRow
+              key={category.id}
+              category={category}
+              productCount={products.filter((p) => p.category.id === category.id).length}
+              featuredCount={featuredCount}
+              onChanged={onChanged}
+            />
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function CategoryRow({
+  category,
+  productCount,
+  featuredCount,
+  onChanged,
+}: {
+  category: Category;
+  productCount: number;
+  featuredCount: number;
+  onChanged: () => void;
+}) {
   const { authedFetch } = useAdminAuth();
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  async function handleDelete() {
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      await deleteCategory(authedFetch, category.id);
+      onChanged();
+    } catch (err) {
+      setConfirmingDelete(false);
+      setDeleteError(err instanceof ApiRequestError ? err.message : "Failed to delete category");
+    } finally {
+      setDeleting(false);
+    }
+  }
+
+  if (editing) {
+    return (
+      <tr>
+        <td colSpan={4} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+          <EditCategoryForm
+            category={category}
+            featuredCount={featuredCount}
+            onDone={() => {
+              setEditing(false);
+              onChanged();
+            }}
+            onCancel={() => setEditing(false)}
+          />
+        </td>
+      </tr>
+    );
+  }
+
+  return (
+    <>
+      <tr>
+        <td className="border-t border-slate-100 px-4 py-3">
+          <p className="font-semibold text-[#153C4D]">{category.name}</p>
+          {category.description && <p className="mt-0.5 text-xs text-slate-500">{category.description}</p>}
+        </td>
+        <td className="border-t border-slate-100 px-4 py-3 text-slate-600">{productCount}</td>
+        <td className="border-t border-slate-100 px-4 py-3">
+          {category.featured && (
+            <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
+              Featured
+            </span>
+          )}
+        </td>
+        <td className="border-t border-slate-100 px-4 py-3 text-right">
+          <span className="flex justify-end items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setEditing(true)}
+              className="text-xs font-semibold text-[#153C4D] hover:underline"
+            >
+              Edit
+            </button>
+            {confirmingDelete ? (
+              <span className="flex items-center gap-2">
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-60"
+                >
+                  {deleting ? "Deleting..." : "Confirm?"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfirmingDelete(false)}
+                  className="text-xs font-semibold text-slate-400 hover:underline"
+                >
+                  Cancel
+                </button>
+              </span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setConfirmingDelete(true)}
+                className="text-xs font-semibold text-red-600 hover:underline"
+              >
+                Delete
+              </button>
+            )}
+          </span>
+        </td>
+      </tr>
+      {deleteError && (
+        <tr>
+          <td colSpan={4} className="border-t border-slate-100 bg-red-50 px-4 py-3">
+            <p className="text-xs text-red-700">{deleteError}</p>
+          </td>
+        </tr>
+      )}
+    </>
+  );
+}
+
+const MAX_FEATURED_CATEGORIES = 4;
+
+function EditCategoryForm({
+  category,
+  featuredCount,
+  onDone,
+  onCancel,
+}: {
+  category: Category;
+  featuredCount: number;
+  onDone: () => void;
+  onCancel: () => void;
+}) {
+  const { authedFetch } = useAdminAuth();
+  const [description, setDescription] = useState(category.description ?? "");
+  const [imageUrl, setImageUrl] = useState<string[]>(category.imageUrl ? [category.imageUrl] : []);
+  const [featured, setFeatured] = useState(Boolean(category.featured));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Already-featured categories don't count against their own slot.
+  const otherFeaturedCount = featuredCount - (category.featured ? 1 : 0);
+  const featuredLimitReached = otherFeaturedCount >= MAX_FEATURED_CATEGORIES;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setSubmitting(true);
     setError(null);
     try {
-      await createCategory(authedFetch, { name, slug: slug || undefined });
+      await updateCategory(authedFetch, category.id, {
+        description,
+        imageUrl: imageUrl[0],
+        featured,
+      });
+      onDone();
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Failed to save category");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+      {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+      <textarea
+        placeholder="Short description shown on the homepage featured section"
+        rows={2}
+        value={description}
+        onChange={(e) => setDescription(e.target.value)}
+        className={ADMIN_TEXTAREA}
+      />
+      <ImageDropzone
+        images={imageUrl}
+        onChange={setImageUrl}
+        upload={(files) => uploadImages(authedFetch, files).then((r) => r.urls)}
+        label="Category image"
+        multiple={false}
+      />
+      <label className="flex items-center gap-2 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={featured}
+          disabled={!featured && featuredLimitReached}
+          onChange={(e) => setFeatured(e.target.checked)}
+        />
+        Featured on homepage (max {MAX_FEATURED_CATEGORIES})
+      </label>
+      {!featured && featuredLimitReached && (
+        <p className="text-xs text-amber-700">
+          {MAX_FEATURED_CATEGORIES} categories are already featured — unfeature one first.
+        </p>
+      )}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-fit rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
+        >
+          {submitting ? "Saving..." : "Save Changes"}
+        </button>
+        <button type="button" onClick={onCancel} className="text-sm font-semibold text-slate-500 hover:underline">
+          Cancel
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: number; onCreated: () => void }) {
+  const { authedFetch } = useAdminAuth();
+  const [name, setName] = useState("");
+  const [slug, setSlug] = useState("");
+  const [description, setDescription] = useState("");
+  const [imageUrl, setImageUrl] = useState<string[]>([]);
+  const [featured, setFeatured] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const featuredLimitReached = featuredCount >= MAX_FEATURED_CATEGORIES;
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    setSubmitting(true);
+    setError(null);
+    try {
+      await createCategory(authedFetch, {
+        name,
+        slug: slug || undefined,
+        description: description || undefined,
+        imageUrl: imageUrl[0],
+        featured,
+      });
       setName("");
       setSlug("");
+      setDescription("");
+      setImageUrl([]);
+      setFeatured(false);
       onCreated();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Failed to create category");
@@ -254,7 +607,7 @@ function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm">
       {error && <p className="mb-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <input
           required
           placeholder="Category name"
@@ -268,15 +621,146 @@ function CreateCategoryForm({ onCreated }: { onCreated: () => void }) {
           onChange={(e) => setSlug(e.target.value)}
           className={ADMIN_INPUT}
         />
-        <button
-          type="submit"
-          disabled={submitting}
-          className="rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
-        >
-          {submitting ? "Creating..." : "Create Category"}
-        </button>
+        <textarea
+          placeholder="Short description shown on the homepage featured section"
+          rows={2}
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className={`${ADMIN_TEXTAREA} sm:col-span-2`}
+        />
       </div>
+      <div className="mt-3">
+        <ImageDropzone
+          images={imageUrl}
+          onChange={setImageUrl}
+          upload={(files) => uploadImages(authedFetch, files).then((r) => r.urls)}
+          label="Category image"
+          multiple={false}
+        />
+      </div>
+      <label className="mt-3 flex items-center gap-2 text-sm text-slate-600">
+        <input
+          type="checkbox"
+          checked={featured}
+          disabled={!featured && featuredLimitReached}
+          onChange={(e) => setFeatured(e.target.checked)}
+        />
+        Featured on homepage (max {MAX_FEATURED_CATEGORIES})
+      </label>
+      {!featured && featuredLimitReached && (
+        <p className="mt-1 text-xs text-amber-700">
+          {MAX_FEATURED_CATEGORIES} categories are already featured — unfeature one first.
+        </p>
+      )}
+      <button
+        type="submit"
+        disabled={submitting}
+        className="mt-4 rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
+      >
+        {submitting ? "Creating..." : "Create Category"}
+      </button>
     </form>
+  );
+}
+
+// Weight-based shipping — admin sets a per-kg price for each whole kg from
+// 1 to 15 (rates rarely scale linearly, so each band gets its own price).
+// See BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md. Checkout multiplies a
+// cart's total weight (sum of product.weightKg × quantity) by whichever
+// band it lands in — computeShippingFee in lib/shipping.ts.
+const DEFAULT_SHIPPING_ROWS = Array.from({ length: 15 }, (_, i) => ({
+  fromKg: i + 1,
+  toKg: i + 1,
+  pricePerKg: 0,
+}));
+
+function ShippingRatesSection() {
+  const { authedFetch } = useAdminAuth();
+  const [rows, setRows] = useState<{ fromKg: number; toKg: number; pricePerKg: number }[]>(DEFAULT_SHIPPING_ROWS);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  useEffect(() => {
+    getShippingRates()
+      .then((rates) => {
+        if (rates.length > 0) {
+          setRows(
+            [...rates]
+              .sort((a, b) => a.fromKg - b.fromKg)
+              .map((r) => ({ fromKg: r.fromKg, toKg: r.toKg, pricePerKg: Number(r.pricePerKg) }))
+          );
+        }
+      })
+      .catch((err) =>
+        setError(
+          err instanceof ApiRequestError && err.status === 404
+            ? "Not available yet — the backend doesn't have this endpoint until BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md is implemented."
+            : null // any other failure just keeps the editable 1-15kg defaults
+        )
+      )
+      .finally(() => setLoading(false));
+  }, []);
+
+  function updateRow(index: number, pricePerKg: number) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, pricePerKg } : r)));
+    setSuccess(false);
+  }
+
+  async function handleSave() {
+    setSubmitting(true);
+    setError(null);
+    setSuccess(false);
+    try {
+      await updateShippingRates(authedFetch, rows);
+      setSuccess(true);
+    } catch (err) {
+      setError(err instanceof ApiRequestError ? err.message : "Failed to save shipping rates");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <div className="rounded-2xl bg-white p-6 shadow-sm">
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Shipping Rates</h3>
+      <p className="mt-1 text-xs text-slate-400">
+        Price per kg for each weight band — the delivery fee at checkout is the cart&apos;s total weight (unit
+        weight × quantity, summed across items) × whichever band it falls in.
+      </p>
+
+      {error && <p className="mt-3 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">{error}</p>}
+      {success && <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">Shipping rates saved.</p>}
+      {loading && <p className="mt-3 text-sm text-slate-500">Loading...</p>}
+
+      {!loading && (
+        <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
+          {rows.map((row, i) => (
+            <label key={`${row.fromKg}-${row.toKg}`} className="flex flex-col gap-1 text-xs font-semibold text-slate-400">
+              {row.fromKg === row.toKg ? `${row.fromKg}kg` : `${row.fromKg}-${row.toKg}kg`}
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                value={row.pricePerKg}
+                onChange={(e) => updateRow(i, Number(e.target.value))}
+                className={ADMIN_INPUT}
+              />
+            </label>
+          ))}
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={handleSave}
+        disabled={submitting || loading}
+        className="mt-4 rounded-full bg-[#8DC63F] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#72A62E] disabled:opacity-60"
+      >
+        {submitting ? "Saving..." : "Save Shipping Rates"}
+      </button>
+    </div>
   );
 }
 
@@ -304,6 +788,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
   const [sku, setSku] = useState("");
   const [initialStock, setInitialStock] = useState("0");
   const [lowStockThreshold, setLowStockThreshold] = useState("5");
+  const [weightKg, setWeightKg] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -321,6 +806,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
         sku,
         initialStock: Number(initialStock),
         lowStockThreshold: Number(lowStockThreshold),
+        weightKg: weightKg ? Number(weightKg) : undefined,
       });
       onCreated();
     } catch (err) {
@@ -350,6 +836,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
         <input required type="number" min={0} step="0.01" placeholder="Price (USD)" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
         <input required type="number" min={0} placeholder="Initial stock" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} className={ADMIN_INPUT} />
         <input type="number" min={0} placeholder="Low stock threshold" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className={ADMIN_INPUT} />
+        <input type="number" min={0} step="0.01" placeholder="Weight per unit (kg)" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={ADMIN_INPUT} />
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <button
@@ -363,13 +850,23 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
   );
 }
 
-function EditProductForm({ product, onDone }: { product: Product; onDone: () => void }) {
+function EditProductForm({
+  product,
+  categories,
+  onDone,
+}: {
+  product: Product;
+  categories: Category[];
+  onDone: () => void;
+}) {
   const { authedFetch } = useAdminAuth();
+  const [categoryId, setCategoryId] = useState(product.category.id);
   const [name, setName] = useState(product.name);
   const [description, setDescription] = useState(product.description);
   const [priceUsd, setPriceUsd] = useState(product.priceUsd);
   const [images, setImages] = useState<string[]>(product.images);
   const [active, setActive] = useState(product.active);
+  const [weightKg, setWeightKg] = useState(product.weightKg ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -379,11 +876,13 @@ function EditProductForm({ product, onDone }: { product: Product; onDone: () => 
     setError(null);
     try {
       await updateProduct(authedFetch, product.id, {
+        categoryId,
         name,
         description,
         priceUsd: Number(priceUsd),
         images,
         active,
+        weightKg: weightKg !== "" ? Number(weightKg) : undefined,
       });
       onDone();
     } catch (err) {
@@ -397,8 +896,24 @@ function EditProductForm({ product, onDone }: { product: Product; onDone: () => 
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
+        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
+          {categories.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name}
+            </option>
+          ))}
+        </select>
         <input value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
         <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
+        <input
+          type="number"
+          min={0}
+          step="0.01"
+          placeholder="Weight per unit (kg)"
+          value={weightKg}
+          onChange={(e) => setWeightKg(e.target.value)}
+          className={ADMIN_INPUT}
+        />
         <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={`${ADMIN_TEXTAREA} sm:col-span-2`} />
         <ProductImageUploader images={images} onChange={setImages} />
       </div>

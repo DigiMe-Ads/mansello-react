@@ -93,9 +93,8 @@ export default function ContactForm() {
               <span className="text-[#153C4D]">&amp; Get in Touch With Us!</span>
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-slate-600">
-              We&apos;d love to hear from you. Whether you&apos;re planning a
-              stay at The Nest Bologna, arranging an airport transfer, or
-              asking about our Marketplace — the family is always here to
+              We&apos;d love to hear from you. When you&apos;re planning a
+              stay at The Nest Bologna, the family is always here to
               help.
             </p>
 
@@ -132,7 +131,6 @@ export default function ContactForm() {
                     Select Your Subject
                   </option>
                   <option value="room_booking">Room Booking</option>
-                  <option value="airport_transfer">Airport Transfer</option>
                   <option value="marketplace">Marketplace</option>
                   <option value="other">Other</option>
                 </select>

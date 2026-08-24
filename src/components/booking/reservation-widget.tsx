@@ -7,7 +7,7 @@ import { ChevronDown } from "lucide-react";
 import { BookingProvider, usePropertyBooking } from "./booking-provider";
 import { MonthGridView } from "./booking-calendar-view";
 import { buildMonthGrid, formatDisplayDate, nextMonth, todayKey } from "@/lib/date";
-import { computeStayTotal, guestCountOptions, nightsBetween } from "@/lib/api/pricing";
+import { computeStayTotal, estimateCheapestRoomsTotal, guestCountOptions, nightsBetween, totalRoomCapacity } from "@/lib/api/pricing";
 import { formatMoney } from "@/lib/currency";
 import { isRangeAvailable } from "@/lib/availability";
 
@@ -48,11 +48,20 @@ function ReservationWidgetInner({ airbnbHref }: { airbnbHref: string }) {
   }, [base, monthOffset]);
 
   const grid = buildMonthGrid(visible.year, visible.month);
-  const guestOptions = property ? guestCountOptions(property.pricingTiers) : [];
+  const hasRooms = Boolean(property?.rooms?.length);
+  const guestOptions = property
+    ? hasRooms
+      ? Array.from({ length: totalRoomCapacity(property.rooms!) }, (_, i) => i + 1)
+      : guestCountOptions(property.pricingTiers)
+    : [];
 
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const stay =
-    property && checkIn && checkOut ? computeStayTotal(property.pricingTiers, checkIn, checkOut, guests, 1) : null;
+    property && checkIn && checkOut
+      ? hasRooms
+        ? estimateCheapestRoomsTotal(property.rooms!, guests, nights)
+        : computeStayTotal(property.pricingTiers, checkIn, checkOut, guests, 1)
+      : null;
   const minNightsOk = !property || nights === 0 || nights >= property.minNights;
   const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk);
 
@@ -142,6 +151,7 @@ function ReservationWidgetInner({ airbnbHref }: { airbnbHref: string }) {
 
       {stay ? (
         <p className="mt-3 text-sm font-semibold text-[#1B4B4F]">
+          {hasRooms ? "From " : ""}
           {formatMoney(stay.totalPrice, property.currency)} · {stay.nights} night{stay.nights > 1 ? "s" : ""}
         </p>
       ) : (

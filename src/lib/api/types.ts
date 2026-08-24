@@ -43,6 +43,88 @@ export interface Property {
   cityTaxMaxNights?: number; // tax stops accruing after this many nights of a stay
   cityTaxExemptAgeUnder?: number; // guests younger than this pay no tax
   cityTaxBands?: CityTaxBand[];
+  // Named, individually-bookable rooms (e.g. Dona's Villa's Ella Room,
+  // Mirissa Room, Sigiriya Family Suite) — spec'd in
+  // BACKEND_CHANGES_SRI_LANKA_ROOMS.md, not yet in API_DOCUMENTATION.md.
+  // Optional/absent for properties that book as a single unit (e.g. The Nest
+  // Bologna), which keep using pricingTiers instead. When present, active
+  // rooms should already be sorted by sortOrder.
+  rooms?: Room[];
+  // Admin-defined date-range price overrides (seasonal/peak pricing) layered
+  // on top of the base pricingTiers/room rates — spec'd in
+  // BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md, not yet in
+  // API_DOCUMENTATION.md. Optional/absent for a not-yet-updated backend, in
+  // which case pricing simply falls back to the base rates everywhere.
+  rateOverrides?: RateOverride[];
+}
+
+// A date-range price override — "charge X/night for this room [or this
+// guests×rooms tier] between these dates instead of the base rate". Not
+// shown to guests as a calendar; only ever resolved down to a single
+// per-night price for whatever dates they've actually selected. See
+// BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md.
+export interface RateOverride {
+  id: string;
+  propertyId: string;
+  // Exactly one of (roomId) or (guestCount + rooms) is set, matching
+  // whichever pricing model the property uses — roomId for room-based
+  // properties (Dona's Villa), guestCount/rooms for tier-based ones
+  // (The Nest Bologna).
+  roomId?: string | null;
+  guestCount?: number | null;
+  rooms?: number | null;
+  startDate: string;
+  endDate: string; // inclusive on the admin form; treated as covering every night up to and including this date
+  pricePerNight: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRateOverrideInput {
+  roomId?: string;
+  guestCount?: number;
+  rooms?: number;
+  startDate: string;
+  endDate: string;
+  pricePerNight: number;
+}
+
+export type UpdateRateOverrideInput = Partial<CreateRateOverrideInput>;
+
+// One individually-bookable room within a property that has more than one
+// (Dona's Villa). Each room has its own nightly rate and capacity, and is
+// booked/blocked independently of the property's other rooms.
+export interface Room {
+  id: string;
+  propertyId: string;
+  name: string; // e.g. "Ella Room"
+  subtitle: string; // e.g. "Double Room" or "Family Suite — 4 guests"
+  capacity: number; // max guests this room sleeps
+  pricePerNight: string;
+  images: string[];
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateRoomInput {
+  name: string;
+  subtitle?: string;
+  capacity: number;
+  pricePerNight: number;
+  images?: string[];
+  sortOrder?: number;
+}
+
+export interface UpdateRoomInput {
+  name?: string;
+  subtitle?: string;
+  capacity?: number;
+  pricePerNight?: number;
+  images?: string[];
+  sortOrder?: number;
+  active?: boolean;
 }
 
 export type AvailabilitySource = "direct" | "airbnb" | "manual";
@@ -59,6 +141,12 @@ export interface AvailabilityBlock {
   bookingId: string | null;
   createdAt: string;
   updatedAt: string;
+  // Which room this block applies to, for properties with individually
+  // bookable rooms (see Room). Absent/null means the block applies to every
+  // room on the property — this is how whole-property blocks (iCal imports,
+  // manual maintenance blocks, and any property with no rooms at all) keep
+  // working unchanged. Optional so a not-yet-updated backend still parses.
+  roomId?: string | null;
 }
 
 export type BookingStatus = "pending_payment" | "confirmed" | "paid_offline" | "cancelled" | "completed";
@@ -75,6 +163,9 @@ export interface Booking {
   checkOut: string;
   guests: number;
   rooms: number;
+  // Specific rooms reserved, for properties with individually bookable rooms
+  // (see Room). Absent for single-unit properties (The Nest Bologna).
+  roomIds?: string[];
   // accommodationPrice + cityTax = totalPrice (the amount actually charged).
   // accommodationPrice/cityTax are optional so a booking from a
   // not-yet-updated backend still renders — falls back to showing just
@@ -105,6 +196,10 @@ export interface CreateBookingInput {
   checkOut: string;
   guests: number;
   rooms?: number;
+  // Specific room IDs being reserved, for properties with individually
+  // bookable rooms — required (and validated server-side for combined
+  // capacity + per-room availability) whenever the property has rooms.
+  roomIds?: string[];
   // How many of `guests` are under the property's cityTaxExemptAgeUnder
   // (14, for Bologna) — exempt from city tax. Ignored server-side for
   // properties with cityTaxEnabled: false.
@@ -120,6 +215,15 @@ export interface Category {
   id: string;
   name: string;
   slug: string;
+  // Short blurb + image shown on the storefront's featured-categories
+  // section, and a flag for whether this category is one of the (at most 4)
+  // featured on that section. Optional/absent for a not-yet-updated backend
+  // — the featured section then just renders nothing. Spec'd in
+  // BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md. The full marketplace
+  // listing page always shows every category regardless of `featured`.
+  description?: string | null;
+  imageUrl?: string | null;
+  featured?: boolean;
 }
 
 export interface StockLevel {
@@ -143,6 +247,12 @@ export interface Product {
   createdAt: string;
   updatedAt: string;
   stockLevel: StockLevel | null;
+  // Weight of a single unit, in kg — drives the per-order shipping fee
+  // (see ShippingRate). Optional/absent for a not-yet-updated backend or a
+  // product created before this field existed; treated as 0kg (no weight
+  // contribution) until set. Spec'd in
+  // BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md.
+  weightKg?: string | null;
 }
 
 export type OrderStatus = "pending" | "confirmed" | "packed" | "shipped" | "delivered" | "cancelled" | "returned";
@@ -196,14 +306,36 @@ export interface CreateProductInput {
   sku: string;
   initialStock: number;
   lowStockThreshold?: number;
+  weightKg?: number;
 }
 
 export interface UpdateProductInput {
+  categoryId?: string;
   name?: string;
   description?: string;
   priceUsd?: number;
   images?: string[];
   active?: boolean;
+  weightKg?: number;
+}
+
+// Admin-configurable per-kg shipping cost band (e.g. rows for 1kg, 2kg, ...
+// 15kg), used to price delivery off a cart's total weight
+// (sum of product.weightKg × quantity). Not in API_DOCUMENTATION.md yet —
+// spec'd in BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md.
+export interface ShippingRate {
+  id: string;
+  fromKg: number;
+  toKg: number;
+  pricePerKg: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UpsertShippingRateInput {
+  fromKg: number;
+  toKg: number;
+  pricePerKg: number;
 }
 
 // --- Admin ---
@@ -280,6 +412,9 @@ export interface CreateManualBlockInput {
   startDate: string;
   endDate: string;
   reason?: string;
+  // Blocks just this one room instead of the whole property. Omit to block
+  // every room (or the whole property, if it has none).
+  roomId?: string;
 }
 
 export interface UpdatePropertyInput {
@@ -299,12 +434,22 @@ export interface UpdatePricingTierInput {
 export interface CreateCategoryInput {
   name: string;
   slug?: string;
+  description?: string;
+  imageUrl?: string;
+  featured?: boolean;
+}
+
+export interface UpdateCategoryInput {
+  name?: string;
+  description?: string;
+  imageUrl?: string;
+  featured?: boolean;
 }
 
 // --- Leads ---
 
 export type LeadStatus = "new" | "read" | "responded";
-export type ContactSubject = "room_booking" | "airport_transfer" | "marketplace" | "other";
+export type ContactSubject = "room_booking" | "airport_transfer" | "tour_package" | "marketplace" | "other";
 export type Site = "italy" | "sri_lanka";
 
 export interface ContactMessage {
@@ -381,6 +526,14 @@ export interface Offer {
   discountPercent: number;
   imageUrl: string | null;
   active: boolean;
+  // Date range the discount actually applies within — optional/absent means
+  // "applies whenever active" (today's behavior, kept for backend
+  // compatibility). When set, the discount is prorated per night: only
+  // nights whose date falls inside [startDate, endDate] get discountPercent
+  // off; other nights of the same stay are charged normally. See
+  // BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md.
+  startDate?: string | null;
+  endDate?: string | null;
   createdAt: string;
   updatedAt: string;
 }
@@ -391,6 +544,8 @@ export interface CreateOfferInput {
   discountPercent: number;
   imageUrl?: string;
   active?: boolean;
+  startDate?: string;
+  endDate?: string;
 }
 
 export interface UpdateOfferInput {
@@ -398,6 +553,8 @@ export interface UpdateOfferInput {
   discountPercent?: number;
   imageUrl?: string;
   active?: boolean;
+  startDate?: string | null;
+  endDate?: string | null;
 }
 
 // --- Blog (spec'd in BACKEND_CHANGES.md, not yet in API_DOCUMENTATION.md) ---

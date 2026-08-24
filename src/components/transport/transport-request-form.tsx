@@ -83,7 +83,7 @@ export function TransportRequestForm({
           onChange={(e) => setType(e.target.value as TransportType)}
           className={`${inputClass} sm:col-span-2`}
         >
-          <option value="fixed_price">Fixed-Price Transfer</option>
+          <option value="fixed_price">Flat-Rate Transfer</option>
           <option value="custom_quote">Custom Quote</option>
         </select>
         <input

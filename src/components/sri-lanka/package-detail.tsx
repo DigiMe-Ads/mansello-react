@@ -73,7 +73,7 @@ export function PackageDetail({ pkg }: { pkg: TourPackage }) {
 
         {/* Value added */}
         <h2 className="mt-10 text-2xl font-bold text-[#153C4D] sm:text-3xl">
-          Value Added Services <span className="text-[#F5A623]">from Ceylon Experiences</span>
+          Value Added Services <span className="text-[#F5A623]">from Mansello</span>
         </h2>
         <ul className="mt-4 flex flex-col gap-2">
           {pkg.valueAdded.map((v) => (
@@ -87,7 +87,7 @@ export function PackageDetail({ pkg }: { pkg: TourPackage }) {
         <div className="mt-16 rounded-3xl bg-[#DCEEEA] px-6 py-10 text-center sm:px-10">
           <h3 className="text-xl font-bold text-[#153C4D] sm:text-2xl">Ready to plan this trip?</h3>
           <p className="mt-2 text-sm text-slate-600">
-            Send us your travel dates and group size, and we&apos;ll get back to you with a fixed quote.
+            Send us your travel dates and group size, and we&apos;ll get back to you with a flat-rate quote.
           </p>
           <Link
             href={`/sri-lanka/transport?package=${encodeURIComponent(pkg.title)}#transfer-request`}

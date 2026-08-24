@@ -3,7 +3,7 @@ import Navbar from "@/components/navbar";
 
 export default function MarketplaceHero() {
   return (
-    <section className="relative flex aspect-1500/787 w-full items-center overflow-hidden bg-[#0B2B2B]">
+    <section className="relative flex min-h-150 w-full items-center overflow-hidden bg-[#0B2B2B] sm:aspect-1500/787 sm:min-h-0">
       <Image
         src="/images/sri-lanka/marketplace/marketplace-hero.webp"
         alt="Hikers looking out over the misty hills of Sri Lanka"
@@ -15,7 +15,7 @@ export default function MarketplaceHero() {
 
       <Navbar />
 
-      <div className="relative z-10 w-full px-6 pb-16 sm:px-12 lg:px-20">
+      <div className="relative z-10 w-full px-6 pb-16 pt-36 sm:px-12 sm:pt-0 lg:px-20">
         <div className="max-w-md sm:ml-[44%] lg:ml-[54%]">
           <h1 className="text-2xl text-slate-900 sm:text-3xl">The Mansello</h1>
           <h2 className="text-4xl font-extrabold leading-[0.95] text-[#6FAE43] sm:text-5xl lg:text-6xl">

@@ -4,15 +4,20 @@ import { useCallback, useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
 import Link from "next/link";
 import { RequireAdmin } from "@/components/admin/require-admin";
+import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { VillaBookingsTab } from "@/components/admin/villa/villa-bookings-tab";
 import { VillaBlocksTab } from "@/components/admin/villa/villa-blocks-tab";
 import { VillaPricingTab } from "@/components/admin/villa/villa-pricing-tab";
+import { VillaRateOverridesTab } from "@/components/admin/villa/villa-rate-overrides-tab";
+import { VillaRoomsTab } from "@/components/admin/villa/villa-rooms-tab";
 import { VillaOffersTab } from "@/components/admin/villa/villa-offers-tab";
 import { VillaSettingsTab } from "@/components/admin/villa/villa-settings-tab";
 import { getProperties } from "@/lib/api/properties";
-import type { Property } from "@/lib/api/types";
+import { getRooms } from "@/lib/api/rooms";
+import { ApiRequestError } from "@/lib/api/errors";
+import type { Property, Room } from "@/lib/api/types";
 
-const TABS = ["Bookings", "Calendar & Blocks", "Pricing", "Offers", "Settings"] as const;
+const TABS = ["Bookings", "Calendar & Blocks", "Pricing", "Seasonal Pricing", "Rooms", "Offers", "Settings"] as const;
 type Tab = (typeof TABS)[number];
 
 export default function VillaDetailPage() {
@@ -26,7 +31,9 @@ export default function VillaDetailPage() {
 }
 
 function VillaDetailContent({ propertyId }: { propertyId: string }) {
+  const { authedFetch } = useAdminAuth();
   const [property, setProperty] = useState<Property | null>(null);
+  const [rooms, setRooms] = useState<Room[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("Bookings");
 
@@ -43,9 +50,31 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load property"));
   }, [propertyId]);
 
+  // Rooms are fetched from the dedicated `/rooms` endpoint (includes
+  // inactive ones, needed so an old booking against a since-deactivated
+  // room can still resolve its name) rather than trusted off `property`
+  // above — `getProperties()` is the admin's property *list* endpoint,
+  // which was never asked to embed `rooms` (only the public single-property
+  // endpoint was). This is the shared list every tab that needs room names
+  // (Bookings, Blocks) uses, so it only has to be correct in one place.
+  const loadRooms = useCallback(() => {
+    getRooms(authedFetch, propertyId)
+      .then(setRooms)
+      .catch((err) => {
+        // A property with no rooms configured (e.g. The Nest Bologna) 404s
+        // here today until BACKEND_CHANGES_SRI_LANKA_ROOMS.md ships — that's
+        // expected, just leave `rooms` empty rather than surfacing an error.
+        if (!(err instanceof ApiRequestError && err.status === 404)) {
+          // eslint-disable-next-line no-console
+          console.error("Failed to load rooms", err);
+        }
+      });
+  }, [authedFetch, propertyId]);
+
   useEffect(() => {
     load();
-  }, [load]);
+    loadRooms();
+  }, [load, loadRooms]);
 
   if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
   if (!property) return <p className="text-sm text-slate-500">Loading...</p>;
@@ -79,10 +108,15 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
           propertyId={property.id}
           currency={property.currency}
           cityTaxEnabled={property.cityTaxEnabled}
+          rooms={rooms}
         />
       )}
-      {tab === "Calendar & Blocks" && <VillaBlocksTab propertyId={property.id} />}
+      {tab === "Calendar & Blocks" && <VillaBlocksTab propertyId={property.id} rooms={rooms} />}
       {tab === "Pricing" && <VillaPricingTab key={property.updatedAt} property={property} onUpdated={load} />}
+      {tab === "Seasonal Pricing" && <VillaRateOverridesTab property={property} rooms={rooms} />}
+      {tab === "Rooms" && (
+        <VillaRoomsTab propertyId={property.id} currency={property.currency} onChanged={loadRooms} />
+      )}
       {tab === "Offers" && <VillaOffersTab propertyId={property.id} />}
       {tab === "Settings" && <VillaSettingsTab property={property} onUpdated={load} />}
     </div>

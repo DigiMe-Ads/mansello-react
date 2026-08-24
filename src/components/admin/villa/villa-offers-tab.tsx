@@ -86,6 +86,13 @@ export function VillaOffersTab({ propertyId }: { propertyId: string }) {
                 <p className="font-semibold text-[#153C4D]">
                   {offer.title} — {offer.discountPercent}% off
                 </p>
+                {offer.startDate && offer.endDate ? (
+                  <p className="mt-0.5 text-xs text-slate-500">
+                    {offer.startDate.slice(0, 10)} → {offer.endDate.slice(0, 10)}
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-xs text-slate-400">No date range — applies whenever active</p>
+                )}
                 <span
                   className={`mt-1 inline-block rounded-full px-3 py-1 text-xs font-semibold ${
                     offer.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
@@ -122,6 +129,8 @@ function CreateOfferForm({ propertyId, onCreated }: { propertyId: string; onCrea
   const { authedFetch } = useAdminAuth();
   const [title, setTitle] = useState("Get Special Offer");
   const [discountPercent, setDiscountPercent] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
   const [images, setImages] = useState<string[]>([]);
   const [active, setActive] = useState(true);
   const [submitting, setSubmitting] = useState(false);
@@ -138,6 +147,8 @@ function CreateOfferForm({ propertyId, onCreated }: { propertyId: string; onCrea
         discountPercent: Number(discountPercent),
         imageUrl: images[0],
         active,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
       });
       onCreated();
     } catch (err) {
@@ -169,6 +180,30 @@ function CreateOfferForm({ propertyId, onCreated }: { propertyId: string; onCrea
           className={ADMIN_INPUT}
         />
       </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Starts
+          <input
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={`${ADMIN_INPUT} font-normal normal-case`}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Ends
+          <input
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={`${ADMIN_INPUT} font-normal normal-case`}
+          />
+        </label>
+      </div>
+      <p className="mt-1 text-xs text-slate-400">
+        Leave both blank to apply whenever this offer is active, with no date limit. When set, the discount is
+        prorated per night — only nights inside this range get {discountPercent || "the"}% off.
+      </p>
       <div className="mt-3">
         <ImageDropzone
           images={images}

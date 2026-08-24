@@ -9,12 +9,12 @@ const transfers = [
   {
     title: "Airport → The Nest Bologna",
     description:
-      "Meet & greet at arrivals, private air-conditioned vehicle, door-to-door drop-off - contact us for a fixed quote",
+      "Meet & greet at arrivals, private air-conditioned vehicle, door-to-door drop-off - contact us for a flat-rate quote",
   },
   {
     title: "The Nest Bologna → Airport",
     description:
-      "Scheduled pick-up from the apartment with guaranteed on-time arrival for your flight - contact us for a fixed quote",
+      "Scheduled pick-up from the apartment with guaranteed on-time arrival for your flight - contact us for a flat-rate quote",
   },
 ];
 
@@ -42,7 +42,7 @@ export default function FixedPriceTransfers() {
         {/* Right: copy */}
         <div>
           <h2 className="text-3xl font-bold sm:text-4xl">
-            <span className="text-[#153C4D]">Fixed-Price</span>{" "}
+            <span className="text-[#153C4D]">Flat-Rate</span>{" "}
             <span className="text-[#F5A623]">Transfers</span>
           </h2>
 
@@ -84,7 +84,7 @@ export default function FixedPriceTransfers() {
 
           <p className="mt-4 text-sm leading-relaxed text-slate-500">
             Tell us where you want to go and how many are travelling, and
-            we&apos;ll send you a clear, fixed quote - no meters, no
+            we&apos;ll send you a clear, flat-rate quote - no meters, no
             surprises.
           </p>
 

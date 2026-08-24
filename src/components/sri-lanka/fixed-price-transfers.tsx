@@ -64,7 +64,7 @@ export default function FixedPriceTransfers() {
         {/* Right: copy */}
         <div>
           <h2 className="text-3xl font-bold sm:text-4xl">
-            <span className="text-[#153C4D]">Fixed-Price</span>{" "}
+            <span className="text-[#153C4D]">Flat-Rate</span>{" "}
             <span className="text-[#F5A623]">Transfers</span>
           </h2>
 
@@ -90,7 +90,7 @@ export default function FixedPriceTransfers() {
 
           <h2 className="mt-10 text-3xl font-bold sm:text-4xl">
             <span className="text-[#153C4D]">Custom</span>{" "}
-            <span className="text-[#F5A623]">Transport Packages</span>
+            <span className="text-[#F5A623]">Tour Packages</span>
           </h2>
 
           <p className="mt-3 text-sm text-slate-500">
@@ -107,7 +107,7 @@ export default function FixedPriceTransfers() {
 
           <p className="mt-4 text-sm leading-relaxed text-slate-500">
             Tell us where you want to go and how many are travelling, and
-            we&apos;ll send you a clear, fixed quote - no meters, no
+            we&apos;ll send you a clear, flat-rate quote - no meters, no
             surprises.
           </p>
 

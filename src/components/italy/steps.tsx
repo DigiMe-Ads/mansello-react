@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Route, TicketCheck, Luggage } from "lucide-react";
 import { getActiveOffer } from "@/lib/api/offers";
 import { getPropertyBySlug } from "@/lib/api/properties";
@@ -27,14 +28,13 @@ const steps: Step[] = [
     number: "02",
     title: "Confirm Your Booking",
     description:
-      "Reserve your room in minutes. Add an airport transfer at checkout so we're waiting when you land.",
+      "Reserve your room in minutes.",
     icon: TicketCheck,
   },
   {
     number: "03",
     title: "Arrive & Relax",
-    description:
-      "Your driver meets you at arrivals and brings you straight to The Nest Bologna.",
+    description: "Enjoy your stay at The Nest Bologna.",
     icon: Luggage,
   },
 ];
@@ -73,9 +73,14 @@ export default function Steps() {
             offer ? "lg:grid-cols-[220px_1fr_380px]" : "lg:grid-cols-[1fr_380px]"
           }`}
         >
-          {/* Deal card — only rendered when the property has an active offer */}
+          {/* Deal card — only rendered when the property has an active offer.
+              Clickable straight through to the booking calendar so a guest
+              can act on the deal immediately. */}
           {offer && (
-            <div className="mx-auto w-full max-w-[220px] self-start overflow-hidden rounded-[28px] shadow-lg lg:mx-0">
+            <Link
+              href="/italy/airbnb#booking"
+              className="mx-auto block w-full max-w-[220px] self-start overflow-hidden rounded-[28px] shadow-lg transition hover:-translate-y-1 hover:shadow-xl lg:mx-0"
+            >
               <div className="relative h-[190px] w-full bg-[#1B4B4F]">
                 {offer.imageUrl && isRenderableImageSrc(offer.imageUrl) && (
                   <Image src={offer.imageUrl} alt={offer.title} fill sizes="220px" className="object-cover" />
@@ -90,8 +95,9 @@ export default function Steps() {
                     <span className="text-sm font-semibold">OFF</span>
                   </div>
                 </div>
+                <p className="mt-1 text-[10px] font-semibold uppercase tracking-wide text-white/80">Book now →</p>
               </div>
-            </div>
+            </Link>
           )}
 
           {/* Steps list */}

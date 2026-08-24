@@ -12,9 +12,8 @@ const villaImages = [
 ];
 
 const highlights = [
-  "Studio for 1–4 guests, from 85€ per night",
+  "Apartment for 1–4 guests",
   "Easy reach of Bologna Guglielmo Marconi Airport (BLQ)",
-  "Airport pick-up and drop-off available",
   "Fully equipped kitchen",
   "10 minutes from Bologna Main Station",
   "5 minutes from Bologna Fiera",

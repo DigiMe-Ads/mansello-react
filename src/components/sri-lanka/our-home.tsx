@@ -50,7 +50,7 @@ export default function OurHome() {
           between the Negombo lagoon and the Indian Ocean, just 30 minutes
           from Bandaranaike International Airport. We welcome travellers
           arriving into Colombo with a quiet coastal retreat and dependable
-          fixed-price airport transfers — so your first and last days on
+          flat-rate airport transfers — so your first and last days on
           the island are as relaxed as everything in between.
         </p>
 

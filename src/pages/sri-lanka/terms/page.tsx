@@ -35,7 +35,7 @@ const sections: { heading: string; paragraphs: string[] }[] = [
   {
     heading: "5. Airport Transfers & Transport",
     paragraphs: [
-      "Fixed-price and custom-quote transport services (e.g. airport pick-up/drop-off) are optional add-ons, arranged separately from your room booking and confirmed directly by our team.",
+      "Flat-rate and custom-quote transport services (e.g. airport pick-up/drop-off) are optional add-ons, arranged separately from your room booking and confirmed directly by our team.",
     ],
   },
   {

@@ -5,11 +5,12 @@ import { getPropertyBySlug } from "@/lib/api/properties";
 import { getAvailability } from "@/lib/api/availability";
 import { createBooking } from "@/lib/api/bookings";
 import { submitTransportRequest } from "@/lib/api/leads";
-import { buildBlockedDateSet, isRangeAvailable } from "@/lib/availability";
+import { getOffers } from "@/lib/api/offers";
+import { buildBlockedDateSetForRooms, isRangeAvailable } from "@/lib/availability";
 import { guestCountOptions, roomOptionsForGuestCount } from "@/lib/api/pricing";
 import { addDaysToKey, todayKey } from "@/lib/date";
 import { ApiRequestError, isConflict, isValidationError } from "@/lib/api/errors";
-import type { Booking, TransportType } from "@/lib/api/types";
+import type { AvailabilityBlock, Booking, Offer, TransportType } from "@/lib/api/types";
 import type { Property } from "@/lib/api/types";
 
 type Step = "select" | "details" | "payment";
@@ -40,6 +41,17 @@ interface BookingProviderState {
   // Of `guests`, how many are under the property's cityTaxExemptAgeUnder —
   // only meaningful (and only shown in the UI) when property.cityTaxEnabled.
   childrenUnder14: number;
+  // Which specific rooms are picked, for properties with individually
+  // bookable rooms (property.rooms) — ignored otherwise.
+  selectedRoomIds: string[];
+  // Per-room "booked" sets for the room picker — booking any one room locks
+  // the whole villa, so every room maps to the same whole-property blocked
+  // set (see lib/availability.ts).
+  roomBlockedDates: Map<string, Set<string>>;
+  // Active discounts (see Offer.startDate/endDate) for this property, used
+  // to prorate the displayed price per night. Best-effort — stays empty if
+  // the endpoint isn't live yet.
+  offers: Offer[];
   booking: Booking | null;
   clientSecret: string | null;
   submitting: boolean;
@@ -49,6 +61,12 @@ interface BookingProviderState {
   setGuests: (n: number) => void;
   setRooms: (n: number) => void;
   setChildrenUnder14: (n: number) => void;
+  // Sets adult + child counts together (guests = adults + children) in one
+  // update, for an "Adults / Children" picker — avoids the stale-closure
+  // clamping that calling setGuests then setChildrenUnder14 separately would
+  // hit, since each of those reads the other's *previous* state.
+  setGuestComposition: (adults: number, children: number) => void;
+  toggleRoom: (roomId: string) => void;
   goToDetails: () => void;
   backToSelect: () => void;
   submitGuestDetails: (input: GuestDetailsInput) => Promise<void>;
@@ -72,7 +90,7 @@ export function BookingProvider({
   const [property, setProperty] = useState<Property | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [blockedDates, setBlockedDates] = useState<Set<string>>(new Set());
+  const [rawBlocks, setRawBlocks] = useState<AvailabilityBlock[]>([]);
 
   const [step, setStep] = useState<Step>("select");
   const [checkIn, setCheckIn] = useState<string | null>(null);
@@ -80,20 +98,36 @@ export function BookingProvider({
   const [guests, setGuestsState] = useState(1);
   const [rooms, setRoomsState] = useState(1);
   const [childrenUnder14, setChildrenUnder14State] = useState(0);
+  const [selectedRoomIds, setSelectedRoomIdsState] = useState<string[]>([]);
 
+  const roomList = useMemo(() => property?.rooms ?? [], [property]);
+  const roomIds = useMemo(() => roomList.map((r) => r.id), [roomList]);
+
+  // Booking any one room locks the whole villa — every room's own "booked"
+  // set is the same whole-property blocked set.
+  const blockedDates = useMemo(
+    () => buildBlockedDateSetForRooms(rawBlocks, roomIds),
+    [rawBlocks, roomIds]
+  );
+  const roomBlockedDates = useMemo(() => {
+    const map = new Map<string, Set<string>>();
+    for (const id of roomIds) map.set(id, blockedDates);
+    return map;
+  }, [roomIds, blockedDates]);
+
+  const [offers, setOffers] = useState<Offer[]>([]);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
-  const loadAvailability = useCallback(async (propertyId: string) => {
+  const loadAvailability = useCallback(async (propertyId: string, roomIdsForProperty: string[]) => {
     const from = todayKey();
     const to = addDaysToKey(from, AVAILABILITY_WINDOW_DAYS);
     const blocks = await getAvailability(propertyId, from, to);
-    const blocked = buildBlockedDateSet(blocks);
-    setBlockedDates(blocked);
-    return blocked;
+    setRawBlocks(blocks);
+    return buildBlockedDateSetForRooms(blocks, roomIdsForProperty);
   }, []);
 
   useEffect(() => {
@@ -106,10 +140,19 @@ export function BookingProvider({
         const prop = await getPropertyBySlug(propertySlug);
         if (cancelled) return;
         setProperty(prop);
+        const propRoomIds = (prop.rooms ?? []).map((r) => r.id);
         const guestOptions = guestCountOptions(prop.pricingTiers);
         if (guestOptions.length && !guestOptions.includes(1)) setGuestsState(guestOptions[0]);
-        const blocked = await loadAvailability(prop.id);
+        const blocked = await loadAvailability(prop.id, propRoomIds);
         if (cancelled) return;
+
+        // Best-effort — active discounts just don't show if this 404s
+        // (endpoint not live yet, or none configured).
+        getOffers(prop.id)
+          .then((result) => {
+            if (!cancelled) setOffers(result);
+          })
+          .catch(() => {});
 
         // Pick up a selection made on the homepage's reservation widget
         // before it linked here (?checkIn=&checkOut=&guests=) — only
@@ -154,8 +197,8 @@ export function BookingProvider({
   }, [propertySlug, loadAvailability]);
 
   const refetchAvailability = useCallback(async () => {
-    if (property) await loadAvailability(property.id);
-  }, [property, loadAvailability]);
+    if (property) await loadAvailability(property.id, roomIds);
+  }, [property, roomIds, loadAvailability]);
 
   const selectDay = useCallback(
     (key: string) => {
@@ -197,6 +240,26 @@ export function BookingProvider({
     [guests]
   );
 
+  const setGuestComposition = useCallback(
+    (adults: number, children: number) => {
+      const nextChildren = Math.max(0, children);
+      const total = Math.max(1, adults) + nextChildren;
+      setGuestsState(total);
+      setChildrenUnder14State(nextChildren);
+      if (property) {
+        const options = roomOptionsForGuestCount(property.pricingTiers, total);
+        if (options.length && !options.includes(rooms)) setRoomsState(options[0]);
+      }
+    },
+    [property, rooms]
+  );
+
+  const toggleRoom = useCallback((roomId: string) => {
+    setSelectedRoomIdsState((prev) =>
+      prev.includes(roomId) ? prev.filter((id) => id !== roomId) : [...prev, roomId]
+    );
+  }, []);
+
   const goToDetails = useCallback(() => {
     setSubmitError(null);
     setStep("details");
@@ -213,6 +276,7 @@ export function BookingProvider({
     setCheckIn(null);
     setCheckOut(null);
     setChildrenUnder14State(0);
+    setSelectedRoomIdsState([]);
     setBooking(null);
     setClientSecret(null);
     setSubmitError(null);
@@ -238,6 +302,7 @@ export function BookingProvider({
           checkOut,
           guests,
           rooms,
+          roomIds: selectedRoomIds.length ? selectedRoomIds : undefined,
           childrenUnder14,
         });
         setBooking(result.booking);
@@ -285,7 +350,7 @@ export function BookingProvider({
         setSubmitting(false);
       }
     },
-    [property, checkIn, checkOut, guests, rooms, childrenUnder14, refetchAvailability]
+    [property, checkIn, checkOut, guests, rooms, selectedRoomIds, childrenUnder14, refetchAvailability]
   );
 
   const value = useMemo<BookingProviderState>(
@@ -300,6 +365,9 @@ export function BookingProvider({
       guests,
       rooms,
       childrenUnder14,
+      selectedRoomIds,
+      roomBlockedDates,
+      offers,
       booking,
       clientSecret,
       submitting,
@@ -309,6 +377,8 @@ export function BookingProvider({
       setGuests,
       setRooms,
       setChildrenUnder14,
+      setGuestComposition,
+      toggleRoom,
       goToDetails,
       backToSelect,
       submitGuestDetails,
@@ -326,6 +396,9 @@ export function BookingProvider({
       guests,
       rooms,
       childrenUnder14,
+      selectedRoomIds,
+      roomBlockedDates,
+      offers,
       booking,
       clientSecret,
       submitting,
@@ -335,6 +408,8 @@ export function BookingProvider({
       setGuests,
       setRooms,
       setChildrenUnder14,
+      setGuestComposition,
+      toggleRoom,
       goToDetails,
       backToSelect,
       submitGuestDetails,

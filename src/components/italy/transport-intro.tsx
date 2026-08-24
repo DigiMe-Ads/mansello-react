@@ -33,8 +33,8 @@ export default function TransportIntro() {
         <p className="mt-6 text-sm leading-relaxed text-white/90 sm:text-base">
           Skip the taxi queue and the price negotiations. Mansello&apos;s
           private transfer service takes you directly between Bologna
-          Guglielmo Marconi Airport (BLQ) and The Nest Bologna at one fixed
-          price — day or night, with a driver who knows exactly where
+          Guglielmo Marconi Airport (BLQ) and The Nest Bologna at one flat
+          rate — day or night, with a driver who knows exactly where
           you&apos;re going.
         </p>
       </div>

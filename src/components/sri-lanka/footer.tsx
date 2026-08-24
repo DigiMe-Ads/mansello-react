@@ -10,7 +10,7 @@ import { ApiRequestError } from "@/lib/api/errors";
 
 const exploreLinks = [
   { label: "About us", href: "/sri-lanka/about" },
-  { label: "BnB", href: "/sri-lanka/airbnb" },
+  { label: "Villa", href: "/sri-lanka/airbnb" },
   { label: "Transport", href: "/sri-lanka/transport" },
   { label: "Marketplace", href: "/sri-lanka/marketplace" },
   { label: "Blogs", href: "/sri-lanka/blog" },
@@ -159,7 +159,7 @@ export default function Footer() {
                 />
               </div>
               <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-slate-600">
-                Family-run Bed &amp; Breakfast in Pamunugama with fixed-price
+                Family-run villa in Pamunugama with flat-rate
                 airport transfers and an Italian marketplace.
               </p>
               <div className="mt-4 flex gap-3">

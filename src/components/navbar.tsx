@@ -10,7 +10,7 @@ import { SiteSearch, type SearchablePage } from "@/components/site-search";
 const leftLinks = [
   { label: "Home", href: "/" },
   { label: "About", href: "/sri-lanka/about" },
-  { label: "BnB", href: "/sri-lanka/airbnb" },
+  { label: "Villa", href: "/sri-lanka/airbnb" },
   { label: "Transport", href: "/sri-lanka/transport" },
 ];
 
@@ -20,10 +20,10 @@ const rightLinks = [
 ];
 
 const searchablePages: SearchablePage[] = [
-  { title: "Home", description: "Dona's Villa — Bed & Breakfast in Pamunugama", href: "/" },
+  { title: "Home", description: "Dona's Villa — Villa in Pamunugama", href: "/" },
   { title: "About", description: "Our story and the two Mansello homes", href: "/sri-lanka/about" },
-  { title: "BnB", description: "Rooms, pricing and live availability", href: "/sri-lanka/airbnb" },
-  { title: "Transport", description: "Fixed-price airport transfers and custom quotes", href: "/sri-lanka/transport" },
+  { title: "Villa", description: "Rooms, pricing and live availability", href: "/sri-lanka/airbnb" },
+  { title: "Transport", description: "Flat-rate airport transfers and custom quotes", href: "/sri-lanka/transport" },
   { title: "Marketplace", description: "Genuine Italian goods, delivered in Sri Lanka", href: "/sri-lanka/marketplace" },
   { title: "Contact", description: "Get in touch or send a message", href: "/sri-lanka/contact" },
   { title: "Blog", description: "Tips, guides and stories from Sri Lanka", href: "/sri-lanka/blog" },
@@ -35,7 +35,7 @@ export default function Navbar() {
 
   return (
     <header className="fixed top-0 left-1/2 z-50 w-[92%] max-w-6xl -translate-x-1/2">
-      <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white/95 px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
+      <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
         {/* Left links */}
         <nav className="hidden items-center gap-18 md:flex">
           {leftLinks.map((link) => (
