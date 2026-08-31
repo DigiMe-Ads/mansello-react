@@ -252,7 +252,7 @@ export default function Footer() {
                 </span>
                 <a
                   href="tel:+393803488663"
-                  className="text-xl text-[#F5A623]"
+                  className="whitespace-nowrap text-xl text-[#F5A623]"
                   style={{ fontFamily: "var(--font-script)" }}
                 >
                   +39 380 348 8663

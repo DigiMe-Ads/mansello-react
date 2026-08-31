@@ -1,5 +1,22 @@
 import type { AuthedFetch } from "@/components/admin/admin-auth-provider";
-import type { CreateRoomInput, Room, UpdateRoomInput } from "./types";
+import type { CreateRoomInput, Property, Room, UpdateRoomInput } from "./types";
+
+// Properties that use individually-bookable rooms (own price/capacity per
+// room) instead of guests×rooms pricing tiers. Only Dona's Villa today.
+// Add a slug here when another room-based property is added.
+const ROOM_MODEL_SLUGS = new Set(["donas-villa"]);
+
+// Whether a property prices/books via the room model (Rooms tab, per-room
+// rates) rather than the tier model (Pricing tab, guests×rooms tiers).
+// Can't be inferred purely from `rooms.length > 0` — a freshly-set-up
+// room-based property legitimately has zero rooms until its first one is
+// created, and that emptiness would otherwise be indistinguishable from a
+// tier-based property. Every admin screen that needs to know which pricing
+// model applies (villa detail tabs, Seasonal Pricing's room-vs-tier picker)
+// should use this instead of checking `rooms.length` directly.
+export function usesRoomModel(property: Pick<Property, "slug">, rooms: Room[]): boolean {
+  return rooms.length > 0 || ROOM_MODEL_SLUGS.has(property.slug);
+}
 
 // Not in API_DOCUMENTATION.md yet — spec'd in BACKEND_CHANGES_SRI_LANKA_ROOMS.md.
 // The public site normally gets rooms for free via `property.rooms` (see

@@ -251,7 +251,7 @@ export default function Footer() {
                 </span>
                 <a
                   href="tel:+94741024320"
-                  className="text-xl text-[#F5A623]"
+                  className="whitespace-nowrap text-xl text-[#F5A623]"
                   style={{ fontFamily: "var(--font-script)" }}
                 >
                   +94 74 102 4320

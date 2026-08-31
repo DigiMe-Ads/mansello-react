@@ -13,19 +13,34 @@ import { VillaRoomsTab } from "@/components/admin/villa/villa-rooms-tab";
 import { VillaOffersTab } from "@/components/admin/villa/villa-offers-tab";
 import { VillaSettingsTab } from "@/components/admin/villa/villa-settings-tab";
 import { getProperties } from "@/lib/api/properties";
-import { getRooms } from "@/lib/api/rooms";
+import { getRooms, usesRoomModel } from "@/lib/api/rooms";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { Property, Room } from "@/lib/api/types";
 
-const TABS = ["Bookings", "Calendar & Blocks", "Pricing", "Seasonal Pricing", "Rooms", "Offers", "Settings"] as const;
-type Tab = (typeof TABS)[number];
+type Tab = "Bookings" | "Calendar & Blocks" | "Pricing" | "Seasonal Pricing" | "Rooms" | "Offers" | "Settings";
+
+// "Pricing" (guests×rooms tiers) only makes sense for a property that
+// doesn't use the room model; "Rooms" only makes sense for one that does —
+// each property only ever uses one of those two pricing models, never both.
+// "Seasonal Pricing" applies either way (it adapts internally to whichever
+// model the property uses — see VillaRateOverridesTab).
+function tabsFor(usesRoomModel: boolean): Tab[] {
+  const base: Tab[] = ["Bookings", "Calendar & Blocks"];
+  const pricing: Tab[] = usesRoomModel ? ["Seasonal Pricing", "Rooms"] : ["Pricing", "Seasonal Pricing"];
+  return [...base, ...pricing, "Offers", "Settings"];
+}
 
 export default function VillaDetailPage() {
   const { propertyId = "" } = useParams<{ propertyId: string }>();
 
   return (
     <RequireAdmin roles={["super_admin", "villa_manager"]}>
-      <VillaDetailContent propertyId={propertyId} />
+      {/* Keyed so switching between two different villas (same route
+          pattern, different :propertyId) fully remounts this — resetting
+          `tab`/`rooms`/`property` state instead of carrying over a
+          selected tab (e.g. "Rooms") that may not apply to the new
+          property. */}
+      <VillaDetailContent key={propertyId} propertyId={propertyId} />
     </RequireAdmin>
   );
 }
@@ -34,6 +49,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
   const { authedFetch } = useAdminAuth();
   const [property, setProperty] = useState<Property | null>(null);
   const [rooms, setRooms] = useState<Room[]>([]);
+  const [roomsLoaded, setRoomsLoaded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>("Bookings");
 
@@ -57,13 +73,19 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
   // which was never asked to embed `rooms` (only the public single-property
   // endpoint was). This is the shared list every tab that needs room names
   // (Bookings, Blocks) uses, so it only has to be correct in one place.
+  // Whether this ends up non-empty is also what decides which pricing tab
+  // (Pricing vs Rooms) applies to this property — see tabsFor above.
   const loadRooms = useCallback(() => {
     getRooms(authedFetch, propertyId)
-      .then(setRooms)
+      .then((result) => {
+        setRooms(result);
+        setRoomsLoaded(true);
+      })
       .catch((err) => {
         // A property with no rooms configured (e.g. The Nest Bologna) 404s
         // here today until BACKEND_CHANGES_SRI_LANKA_ROOMS.md ships — that's
         // expected, just leave `rooms` empty rather than surfacing an error.
+        setRoomsLoaded(true);
         if (!(err instanceof ApiRequestError && err.status === 404)) {
           // eslint-disable-next-line no-console
           console.error("Failed to load rooms", err);
@@ -76,8 +98,19 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
     loadRooms();
   }, [load, loadRooms]);
 
+  const roomModel = property ? usesRoomModel(property, rooms) : false;
+  const tabs = tabsFor(roomModel);
+
+  // If rooms finish loading after the tab bar first renders and that
+  // flips which pricing tab applies, fall back to Bookings rather than
+  // leaving `tab` pointed at one that's no longer shown.
+  useEffect(() => {
+    if (roomsLoaded && !tabs.includes(tab)) setTab("Bookings");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roomsLoaded, roomModel]);
+
   if (error) return <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>;
-  if (!property) return <p className="text-sm text-slate-500">Loading...</p>;
+  if (!property || !roomsLoaded) return <p className="text-sm text-slate-500">Loading...</p>;
 
   return (
     <div className="flex flex-col gap-6">
@@ -89,7 +122,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
       </div>
 
       <div className="flex gap-2 border-b border-slate-200">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button
             key={t}
             type="button"
@@ -112,9 +145,11 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
         />
       )}
       {tab === "Calendar & Blocks" && <VillaBlocksTab propertyId={property.id} rooms={rooms} />}
-      {tab === "Pricing" && <VillaPricingTab key={property.updatedAt} property={property} onUpdated={load} />}
+      {tab === "Pricing" && !roomModel && (
+        <VillaPricingTab key={property.updatedAt} property={property} onUpdated={load} />
+      )}
       {tab === "Seasonal Pricing" && <VillaRateOverridesTab property={property} rooms={rooms} />}
-      {tab === "Rooms" && (
+      {tab === "Rooms" && roomModel && (
         <VillaRoomsTab propertyId={property.id} currency={property.currency} onChanged={loadRooms} />
       )}
       {tab === "Offers" && <VillaOffersTab propertyId={property.id} />}

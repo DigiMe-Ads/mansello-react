@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT, ADMIN_SELECT } from "@/components/admin/input-styles";
 import { createRateOverride, deleteRateOverride, getRateOverrides } from "@/lib/api/rate-overrides";
+import { usesRoomModel } from "@/lib/api/rooms";
 import { formatDisplayDate } from "@/lib/date";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { Property, RateOverride, Room } from "@/lib/api/types";
@@ -25,7 +26,7 @@ export function VillaRateOverridesTab({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const hasRooms = rooms.length > 0;
+  const hasRooms = usesRoomModel(property, rooms);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -130,7 +131,7 @@ function NewOverrideForm({
   onCreated: () => void;
 }) {
   const { authedFetch } = useAdminAuth();
-  const hasRooms = rooms.length > 0;
+  const hasRooms = usesRoomModel(property, rooms);
   const tierOptions = property.pricingTiers;
 
   const [roomId, setRoomId] = useState(rooms[0]?.id ?? "");
