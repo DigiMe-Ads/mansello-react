@@ -661,3 +661,60 @@ export interface BookingInfoRequestPublicView {
 export interface SubmitGuestInfoInput {
   answers: GuestInfoAnswers;
 }
+
+// --- Heatmap ---
+//
+// Not in API_DOCUMENTATION.md yet — spec'd in
+// BACKEND_CHANGES_HEATMAP_ANALYTICS.md. See src/lib/analytics/click-tracker.ts
+// (the public-site data collector) and src/lib/api/heatmap.ts (the admin-side
+// read calls).
+
+export type HeatmapDevice = "all" | "desktop" | "tablet" | "mobile";
+
+export interface HeatmapPageInfo {
+  site: Site;
+  path: string;
+  label: string;
+  clicks: number;
+}
+
+export interface HeatmapPoint {
+  // A fraction (0–1) of the page's rendered width/height at the moment of
+  // capture — resolution-independent, so a click recorded on one visitor's
+  // screen still lands in the right spot when replayed over the admin's
+  // preview iframe at a different pixel size.
+  xPct: number;
+  yPct: number;
+  // How many raw clicks were folded into this point after grid bucketing —
+  // never directly a pixel-for-pixel click.
+  weight: number;
+}
+
+export interface HeatmapData {
+  site: Site | null;
+  path: string;
+  device: HeatmapDevice;
+  from: string; // YYYY-MM-DD
+  to: string; // YYYY-MM-DD
+  totalClicks: number;
+  totalPageViews: number;
+  // The hottest point's weight — every point's color/intensity when drawn is
+  // normalized against this, same idea as Plerdy/Hotjar's overlays.
+  maxWeight: number;
+  points: HeatmapPoint[];
+}
+
+export interface ClickEventInput {
+  site: Site | null;
+  path: string;
+  xPct: number;
+  yPct: number;
+  viewportWidth: number;
+  device: Exclude<HeatmapDevice, "all">;
+  sessionId: string;
+  // Best-effort "tag#id.class" description of the clicked element, purely
+  // for an optional "top clicked elements" list — never element text
+  // content, which could be guest-entered PII.
+  targetSelector?: string;
+  occurredAt: string; // ISO timestamp, client clock
+}

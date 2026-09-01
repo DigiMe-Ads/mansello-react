@@ -11,6 +11,7 @@ const NAV_ITEMS: { href: string; label: string; roles?: AdminRole[] }[] = [
   { href: "/admin/marketplace/products", label: "Products", roles: ["super_admin", "marketplace_manager"] },
   { href: "/admin/marketplace/orders", label: "Orders", roles: ["super_admin", "marketplace_manager"] },
   { href: "/admin/leads", label: "Leads" },
+  { href: "/admin/heatmap", label: "Heatmap", roles: ["super_admin"] },
   { href: "/admin/blog", label: "Blog", roles: ["super_admin"] },
   { href: "/admin/settings/guest-info-form", label: "Guest Info Form", roles: ["super_admin"] },
   { href: "/admin/users", label: "Admin Users", roles: ["super_admin"] },
@@ -41,7 +42,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
         </nav>
       </aside>
 
-      <div className="flex-1">
+      {/* min-w-0 overrides the flex default of min-width:auto — without it,
+          a flex item never shrinks below its widest descendant's natural
+          size, so a wide child (like the Heatmap tab's device preview)
+          would push this whole column wider than the space actually next
+          to the sidebar, forcing the entire dashboard to scroll
+          horizontally instead of the one component that needs to. */}
+      <div className="min-w-0 flex-1">
         <header className="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4">
           <p className="text-sm text-slate-500">
             Signed in as <span className="font-semibold text-[#153C4D]">{admin?.email}</span>{" "}

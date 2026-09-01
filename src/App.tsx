@@ -1,6 +1,7 @@
 import { useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { CartProvider } from "@/components/marketplace/cart-provider";
+import { initClickHeatmapTracker } from "@/lib/analytics/click-tracker";
 
 // --- Public pages -----------------------------------------------------------
 import Home from "@/pages/page";
@@ -47,6 +48,7 @@ import AdminLeads from "@/pages/admin/(protected)/leads/page";
 import AdminBlog from "@/pages/admin/(protected)/blog/page";
 import AdminGuestInfoForm from "@/pages/admin/(protected)/settings/guest-info-form/page";
 import AdminUsers from "@/pages/admin/(protected)/users/page";
+import AdminHeatmap from "@/pages/admin/(protected)/heatmap/page";
 
 // Restore Next's default behaviour of scrolling to the top on navigation.
 function ScrollToTop() {
@@ -57,10 +59,21 @@ function ScrollToTop() {
   return null;
 }
 
+// Starts the public-site click collector that feeds the admin Heatmap tab —
+// see src/lib/analytics/click-tracker.ts. Mounted once, here, rather than in
+// every individual page.
+function ClickHeatmapTracker() {
+  useEffect(() => {
+    initClickHeatmapTracker();
+  }, []);
+  return null;
+}
+
 export default function App() {
   return (
     <CartProvider>
       <ScrollToTop />
+      <ClickHeatmapTracker />
       <Routes>
         <Route path="/" element={<Home />} />
 
@@ -111,6 +124,7 @@ export default function App() {
           <Route path="/admin/blog" element={<AdminBlog />} />
           <Route path="/admin/settings/guest-info-form" element={<AdminGuestInfoForm />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/heatmap" element={<AdminHeatmap />} />
         </Route>
 
         {/* Fallback */}
