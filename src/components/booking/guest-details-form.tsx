@@ -3,9 +3,11 @@
 import { useState } from "react";
 import { usePropertyBooking } from "./booking-provider";
 import type { TransportType } from "@/lib/api/types";
+import { formatMoney } from "@/lib/currency";
 
 export function GuestDetailsForm({ showTransport = true }: { showTransport?: boolean }) {
-  const { submitGuestDetails, submitting, submitError, fieldErrors, backToSelect, checkIn } = usePropertyBooking();
+  const { submitGuestDetails, submitting, submitError, fieldErrors, backToSelect, checkIn, transportPrice, property, guests } =
+    usePropertyBooking();
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
   const [guestPhone, setGuestPhone] = useState("");
@@ -110,7 +112,14 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
                 checked={wantsTransport}
                 onChange={(e) => setWantsTransport(e.target.checked)}
               />
-              Add an airport transfer?
+              <span className="flex-1">Add an airport transfer?</span>
+              {/* Only priced when the property has a rate for this party
+                  size; otherwise it stays the arrange-it-later enquiry. */}
+              {transportPrice !== null && property && (
+                <span className="font-semibold text-[#153C4D]">
+                  +{formatMoney(transportPrice, property.currency)}
+                </span>
+              )}
             </label>
 
             {wantsTransport && (
@@ -146,7 +155,18 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
                   />
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  We&apos;ll reach out to confirm your transfer separately — passenger count is taken from your booking.
+                  {transportPrice !== null && property ? (
+                    <>
+                      {formatMoney(transportPrice, property.currency)} for {guests} guest
+                      {guests === 1 ? "" : "s"}, added to your total below and charged with your booking.
+                      We&apos;ll confirm the pick-up details by email.
+                    </>
+                  ) : (
+                    <>
+                      We&apos;ll reach out to confirm your transfer separately — passenger count is taken from
+                      your booking.
+                    </>
+                  )}
                 </p>
               </div>
             )}

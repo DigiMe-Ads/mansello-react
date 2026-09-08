@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import { useContent } from "@/components/content-provider";
 import { SiteSearch, type SearchablePage } from "@/components/site-search";
 
 const leftLinks = [
@@ -23,6 +24,8 @@ const searchablePages: SearchablePage[] = [
 ];
 
 export default function Navbar() {
+  const { c } = useContent();
+
   const [menuOpen, setMenuOpen] = useState(false);
 
   return (
@@ -79,7 +82,7 @@ export default function Navbar() {
         {/* Logo badge — hangs off the bottom edge only, centered horizontally */}
         <div className="pointer-events-none absolute left-1/2 top-full h-28 w-28 -translate-x-1/2 -translate-y-3/4 rounded-full bg-white/95 sm:h-52 sm:w-52">
           <Image
-            src="/images/logo.webp"
+            src={c("global.brand.logo")}
             alt="Mansello"
             fill
             sizes="(min-width: 640px) 208px, 112px"

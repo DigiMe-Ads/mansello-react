@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useContent } from "@/components/content-provider";
 import Link from "next/link";
 import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
@@ -55,6 +56,8 @@ function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export default function Footer() {
+  const { c } = useContent();
+
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -150,7 +153,7 @@ export default function Footer() {
             <div>
               <div className="relative h-16 w-40">
                 <Image
-                  src="/images/logo.webp"
+                  src={c("global.brand.logo")}
                   alt="Mansello"
                   fill
                   sizes="160px"
@@ -163,7 +166,7 @@ export default function Footer() {
               </p>
               <div className="mt-4 flex gap-3">
                 <a
-                  href="https://www.facebook.com/share/1ESsmm1RzM/?mibextid=wwXIfr"
+                  href={c("global.social.sriLankaFacebook")}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
@@ -172,7 +175,7 @@ export default function Footer() {
                   <FacebookIcon className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://www.instagram.com/mansellosrilanka?utm_source=qr"
+                  href={c("global.social.sriLankaInstagram")}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
@@ -249,30 +252,26 @@ export default function Footer() {
                   <Phone size={16} className="text-[#153C4D]" />
                 </span>
                 <a
-                  href="tel:+94741024320"
+                  href={`tel:${c("global.contact.sriLankaPhone").replace(/\s/g, "")}`}
                   className="whitespace-nowrap text-xl text-[#F5A623]"
                   style={{ fontFamily: "var(--font-script)" }}
                 >
-                  +94 74 102 4320
+                  {c("global.contact.sriLankaPhone")}
                 </a>
               </div>
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Mail size={16} className="text-[#153C4D]" />
                 </span>
-                <a href="mailto:info@mansello.com" className="text-sm text-slate-700">
-                  info@mansello.com
+                <a href={`mailto:${c("global.contact.email")}`} className="text-sm text-slate-700">
+                  {c("global.contact.email")}
                 </a>
               </div>
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Home size={16} className="text-[#153C4D]" />
                 </span>
-                <span className="text-sm text-slate-700">
-                  No. 187, Kepungoda,
-                  <br />
-                  Pamunugama, Sri Lanka
-                </span>
+                <span className="whitespace-pre-line text-sm text-slate-700">{c("global.contact.sriLankaAddress")}</span>
               </div>
             </div>
           </div>

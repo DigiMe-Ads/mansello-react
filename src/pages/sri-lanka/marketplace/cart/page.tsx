@@ -7,14 +7,16 @@ import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
 import { formatMoney } from "@/lib/currency";
-import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
+import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
 import { useSeo } from "@/lib/seo/use-seo";
 import { PAGE_META } from "@/lib/seo/page-meta";
 
 export default function CartPage() {
   const { items, subtotal, setQuantity, removeItem } = useCart();
 
-  const shippingFee = items.length > 0 ? FLAT_SHIPPING_FEE : 0;
+  // Real weight-banded fee, same hook the checkout uses, so the number the
+  // customer sees here is the number they are charged.
+  const { shippingFee, resolved } = useShippingFee();
   const total = subtotal + shippingFee;
 
   useSeo(PAGE_META.marketplaceCart);
@@ -98,11 +100,11 @@ export default function CartPage() {
                   </div>
                   <div className="mt-2 flex justify-between text-sm text-slate-600">
                     <span>Shipping</span>
-                    <span>{formatMoney(shippingFee, "usd")}</span>
+                    <span>{resolved ? formatMoney(shippingFee, "usd") : "—"}</span>
                   </div>
                   <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-[#153C4D]">
                     <span>Total</span>
-                    <span>{formatMoney(total, "usd")}</span>
+                    <span>{resolved ? formatMoney(total, "usd") : "—"}</span>
                   </div>
                 </div>
 

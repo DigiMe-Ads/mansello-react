@@ -4,6 +4,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getPropertyBySlug } from "@/lib/api/properties";
 import { getAvailability } from "@/lib/api/availability";
 import { createBooking } from "@/lib/api/bookings";
+import { resolveTransportPrice } from "@/lib/api/pricing";
 import { submitTransportRequest } from "@/lib/api/leads";
 import { getOffers } from "@/lib/api/offers";
 import { buildBlockedDateSetForRooms, isRangeAvailable } from "@/lib/availability";
@@ -52,6 +53,11 @@ interface BookingProviderState {
   // to prorate the displayed price per night. Best-effort — stays empty if
   // the endpoint isn't live yet.
   offers: Offer[];
+  // Resolved airport-transfer price for the current party size, or null when
+  // the property doesn't offer one for that guest count. Display only — the
+  // server prices the transfer itself from the same table, so the client can
+  // never influence what is charged (see BACKEND_CHANGES_VILLA_TRANSPORT.md).
+  transportPrice: number | null;
   booking: Booking | null;
   clientSecret: string | null;
   submitting: boolean;
@@ -283,6 +289,12 @@ export function BookingProvider({
     setFieldErrors({});
   }, []);
 
+  // Priced per party size, not per person, and charged once per booking.
+  const transportPrice =
+    property?.transportEnabled === false
+      ? null
+      : resolveTransportPrice(property?.transportRates, guests);
+
   const submitGuestDetails = useCallback(
     async (input: GuestDetailsInput) => {
       if (!property || !checkIn || !checkOut) return;
@@ -304,6 +316,8 @@ export function BookingProvider({
           rooms,
           roomIds: selectedRoomIds.length ? selectedRoomIds : undefined,
           childrenUnder14,
+          // A flag, never an amount — the server looks up the price.
+          transportRequested: input.wantsTransport && transportPrice != null ? true : undefined,
         });
         setBooking(result.booking);
         setClientSecret(result.clientSecret);
@@ -350,7 +364,7 @@ export function BookingProvider({
         setSubmitting(false);
       }
     },
-    [property, checkIn, checkOut, guests, rooms, selectedRoomIds, childrenUnder14, refetchAvailability]
+    [property, checkIn, checkOut, guests, rooms, selectedRoomIds, childrenUnder14, transportPrice, refetchAvailability]
   );
 
   const value = useMemo<BookingProviderState>(
@@ -368,6 +382,7 @@ export function BookingProvider({
       selectedRoomIds,
       roomBlockedDates,
       offers,
+      transportPrice,
       booking,
       clientSecret,
       submitting,
@@ -399,6 +414,7 @@ export function BookingProvider({
       selectedRoomIds,
       roomBlockedDates,
       offers,
+      transportPrice,
       booking,
       clientSecret,
       submitting,

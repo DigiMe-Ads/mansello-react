@@ -9,6 +9,7 @@ import { getProperties } from "@/lib/api/properties";
 import { ApiRequestError } from "@/lib/api/errors";
 import { formatDisplayDate } from "@/lib/date";
 import type { AdminAccount, AdminRole, Property } from "@/lib/api/types";
+import { AdminField } from "@/components/admin/admin-field";
 
 const ROLE_LABELS: Record<AdminRole, string> = {
   super_admin: "Super Admin",
@@ -106,27 +107,31 @@ function AdminUsersContent() {
         {success && <p className="mt-3 rounded-lg bg-emerald-50 px-4 py-2 text-sm text-emerald-700">{success}</p>}
 
         <div className="mt-4 flex flex-col gap-3">
-          <input
-            required
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className={ADMIN_INPUT}
-          />
-          <input
-            required
-            type="password"
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={ADMIN_INPUT}
-          />
+          <AdminField label="Email address" required help="They'll sign in with this.">
+            <input
+              required
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className={ADMIN_INPUT}
+            />
+          </AdminField>
+          <AdminField label="Temporary password" required help="Share it with them securely; they should change it after signing in.">
+            <input
+              required
+              type="password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={ADMIN_INPUT}
+            />
+          </AdminField>
+          <AdminField label="Role" help="Controls which sections of this panel they can open.">
           <select value={role} onChange={(e) => setRole(e.target.value as AdminRole)} className={ADMIN_SELECT}>
             <option value="super_admin">Super Admin</option>
             <option value="villa_manager">Villa Manager</option>
             <option value="marketplace_manager">Marketplace Manager</option>
           </select>
+          </AdminField>
           {role === "villa_manager" && (
             <select
               value={propertyScopeId}

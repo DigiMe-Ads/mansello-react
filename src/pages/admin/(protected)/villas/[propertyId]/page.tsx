@@ -11,13 +11,22 @@ import { VillaPricingTab } from "@/components/admin/villa/villa-pricing-tab";
 import { VillaRateOverridesTab } from "@/components/admin/villa/villa-rate-overrides-tab";
 import { VillaRoomsTab } from "@/components/admin/villa/villa-rooms-tab";
 import { VillaOffersTab } from "@/components/admin/villa/villa-offers-tab";
+import { VillaTransportTab } from "@/components/admin/villa/villa-transport-tab";
 import { VillaSettingsTab } from "@/components/admin/villa/villa-settings-tab";
 import { getProperties } from "@/lib/api/properties";
 import { getRooms, usesRoomModel } from "@/lib/api/rooms";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { Property, Room } from "@/lib/api/types";
 
-type Tab = "Bookings" | "Calendar & Blocks" | "Pricing" | "Seasonal Pricing" | "Rooms" | "Offers" | "Settings";
+type Tab =
+  | "Bookings"
+  | "Calendar & Blocks"
+  | "Pricing"
+  | "Seasonal Pricing"
+  | "Rooms"
+  | "Transport"
+  | "Offers"
+  | "Settings";
 
 // "Pricing" (guests×rooms tiers) only makes sense for a property that
 // doesn't use the room model; "Rooms" only makes sense for one that does —
@@ -27,7 +36,7 @@ type Tab = "Bookings" | "Calendar & Blocks" | "Pricing" | "Seasonal Pricing" | "
 function tabsFor(usesRoomModel: boolean): Tab[] {
   const base: Tab[] = ["Bookings", "Calendar & Blocks"];
   const pricing: Tab[] = usesRoomModel ? ["Seasonal Pricing", "Rooms"] : ["Pricing", "Seasonal Pricing"];
-  return [...base, ...pricing, "Offers", "Settings"];
+  return [...base, ...pricing, "Transport", "Offers", "Settings"];
 }
 
 export default function VillaDetailPage() {
@@ -152,6 +161,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
       {tab === "Rooms" && roomModel && (
         <VillaRoomsTab propertyId={property.id} currency={property.currency} onChanged={loadRooms} />
       )}
+      {tab === "Transport" && <VillaTransportTab property={property} />}
       {tab === "Offers" && <VillaOffersTab propertyId={property.id} />}
       {tab === "Settings" && <VillaSettingsTab property={property} onUpdated={load} />}
     </div>

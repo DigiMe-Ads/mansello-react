@@ -3,40 +3,26 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ReservationWidget } from "@/components/booking/reservation-widget";
+import { useContent } from "@/components/content-provider";
 
 // How long each photo stays up before auto-advancing to the next one.
 const AUTO_SWAP_INTERVAL_MS = 5000;
 
-// Shape mirrors sri-lanka/welcome.tsx: each slide carries its own alt, so the
-// carousel doesn't announce the same text for all four photos.
-const villaImages = [
-  {
-    src: "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
-    alt: "Living room at The Nest Bologna",
-  },
-  {
-    src: "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
-    alt: "Bedroom at The Nest Bologna",
-  },
-  {
-    src: "/images/italy/nest-bologna/nest-bologna-kitchen-1.webp",
-    alt: "Kitchen at The Nest Bologna",
-  },
-  {
-    src: "/images/italy/nest-bologna/nest-bologna-exterior-1.webp",
-    alt: "Exterior of The Nest Bologna",
-  },
-];
 
-const highlights = [
-  "Apartment for 1–4 guests",
-  "Fully equipped kitchen",
-  "10 minutes from Bologna Main Station",
-  "5 minutes from Bologna Fiera",
-  "13 minutes from Bologna Guglielmo Marconi Airport (BLQ)",
-];
 
 export default function Welcome() {
+  const { c, cList } = useContent();
+
+  // Photos and their alt text come from the Content tab; each slide keeps its
+  // own alt so the carousel doesn't announce the same text four times.
+  const villaImages = [
+    { src: c("italy.welcome.image1"), alt: "Living room at The Nest Bologna" },
+    { src: c("italy.welcome.image2"), alt: "Bedroom at The Nest Bologna" },
+    { src: c("italy.welcome.image3"), alt: "Kitchen at The Nest Bologna" },
+    { src: c("italy.welcome.image4"), alt: "Exterior of The Nest Bologna" },
+  ];
+  const highlights = cList("italy.welcome.highlights");
+
   const [activeImage, setActiveImage] = useState(0);
 
   // Auto-advance through the photos, same as clicking the dots — clicking a
@@ -54,19 +40,12 @@ export default function Welcome() {
         {/* Left column */}
         <div>
           <h2 className="text-3xl font-bold text-[#153C4D] sm:text-4xl">
-            Welcome to The Nest Bologna
+            {c("italy.welcome.title")}
           </h2>
 
-          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
-            Tucked into a quiet residential corner of Bologna, The Nest is a cosy,
-            family-run stay built around one idea: arriving in Italy should feel like coming home.
-          </p>
+          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">{c("italy.welcome.paragraph1")}</p>
 
-          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
-            Wake up minutes from Bologna&apos;s historic centre and reach Bologna
-            Guglielmo Marconi Airport with ease — perfect for your first or last night
-            in the food capital of Italy, or as a relaxed base to explore Emilia-Romagna.
-          </p>
+          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">{c("italy.welcome.paragraph2")}</p>
 
           <div className="mt-8 flex gap-6">
             <div className="flex h-28 w-28 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#1B4B4F] text-center">

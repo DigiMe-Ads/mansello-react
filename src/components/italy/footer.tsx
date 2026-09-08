@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Image from "next/image";
+import { useContent } from "@/components/content-provider";
 import Link from "next/link";
 import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
@@ -56,6 +57,8 @@ function WhatsAppIcon(props: SVGProps<SVGSVGElement>) {
 }
 
 export default function Footer() {
+  const { c } = useContent();
+
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [status, setStatus] = useState<"idle" | "success" | "error">("idle");
@@ -151,7 +154,7 @@ export default function Footer() {
             <div>
               <div className="relative h-16 w-40">
                 <Image
-                  src="/images/logo.webp"
+                  src={c("global.brand.logo")}
                   alt="Mansello"
                   fill
                   sizes="160px"
@@ -163,7 +166,7 @@ export default function Footer() {
               </p>
               <div className="mt-4 flex gap-3">
                 <a
-                  href="https://www.facebook.com/share/1BnvnhryFX/?mibextid=wwXIfr"
+                  href={c("global.social.italyFacebook")}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Facebook"
@@ -172,7 +175,7 @@ export default function Footer() {
                   <FacebookIcon className="h-4 w-4" />
                 </a>
                 <a
-                  href="https://www.instagram.com/thenestbologna?utm_source=qr"
+                  href={c("global.social.italyInstagram")}
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label="Instagram"
@@ -249,30 +252,26 @@ export default function Footer() {
                   <Phone size={16} className="text-[#153C4D]" />
                 </span>
                 <a
-                  href="tel:+393803488663"
+                  href={`tel:${c("global.contact.italyPhone").replace(/\s/g, "")}`}
                   className="whitespace-nowrap text-xl text-[#F5A623]"
                   style={{ fontFamily: "var(--font-script)" }}
                 >
-                  +39 380 348 8663
+                  {c("global.contact.italyPhone")}
                 </a>
               </div>
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Mail size={16} className="text-[#153C4D]" />
                 </span>
-                <a href="mailto:info@mansello.com" className="text-sm text-slate-700">
-                  info@mansello.com
+                <a href={`mailto:${c("global.contact.email")}`} className="text-sm text-slate-700">
+                  {c("global.contact.email")}
                 </a>
               </div>
               <div className="flex items-center gap-3">
                 <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white shadow-sm">
                   <Home size={16} className="text-[#153C4D]" />
                 </span>
-                <span className="text-sm text-slate-700">
-                  Via Alfredo Calzolari 12,
-                  <br />
-                  40128 Bologna, Italy
-                </span>
+                <span className="whitespace-pre-line text-sm text-slate-700">{c("global.contact.italyAddress")}</span>
               </div>
               <p className="text-xs text-slate-400">
                 CIR: 037006-AT-04671

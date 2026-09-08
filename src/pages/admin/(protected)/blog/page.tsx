@@ -10,6 +10,7 @@ import { uploadImages } from "@/lib/api/uploads";
 import { ApiRequestError } from "@/lib/api/errors";
 import { formatDisplayDate } from "@/lib/date";
 import type { BlogPost, Site } from "@/lib/api/types";
+import { AdminField } from "@/components/admin/admin-field";
 
 const SITE_FILTERS: { label: string; value: Site | "" }[] = [
   { label: "All Sites", value: "" },
@@ -270,43 +271,49 @@ function PostForm({ post, onDone }: { post?: BlogPost; onDone: () => void }) {
             <option value="sri_lanka">Sri Lanka</option>
           </select>
         )}
-        <input
-          required
-          placeholder="Slug (optional, derived from title)"
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          className={ADMIN_INPUT}
-        />
-        <input
-          required
-          placeholder="Title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          className={`${ADMIN_INPUT} sm:col-span-2`}
-        />
-        <input
-          required
-          placeholder="Author"
-          value={author}
-          onChange={(e) => setAuthor(e.target.value)}
-          className={ADMIN_INPUT}
-        />
-        <textarea
-          required
-          placeholder="Excerpt (shown in listings)"
-          rows={2}
-          value={excerpt}
-          onChange={(e) => setExcerpt(e.target.value)}
-          className={`${ADMIN_TEXTAREA} sm:col-span-2`}
-        />
-        <textarea
-          required
-          placeholder="Body"
-          rows={6}
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-          className={`${ADMIN_TEXTAREA} sm:col-span-2`}
-        />
+        <AdminField label="URL slug" required help="Appears in the post's web address. Lowercase words separated by hyphens.">
+          <input
+            required
+            placeholder="e.g. a-weekend-in-bologna"
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            className={ADMIN_INPUT}
+          />
+        </AdminField>
+        <AdminField label="Post title" required className="sm:col-span-2">
+          <input
+            required
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className={ADMIN_INPUT}
+          />
+        </AdminField>
+        <AdminField label="Author name" required help="Shown above the post.">
+          <input
+            required
+            value={author}
+            onChange={(e) => setAuthor(e.target.value)}
+            className={ADMIN_INPUT}
+          />
+        </AdminField>
+        <AdminField label="Excerpt" required className="sm:col-span-2" help="The short summary shown on the blog listing page and in search results.">
+          <textarea
+            required
+            rows={2}
+            value={excerpt}
+            onChange={(e) => setExcerpt(e.target.value)}
+            className={ADMIN_TEXTAREA}
+          />
+        </AdminField>
+        <AdminField label="Post body" required className="sm:col-span-2" help="The full article. Blank lines become paragraph breaks.">
+          <textarea
+            required
+            rows={6}
+            value={body}
+            onChange={(e) => setBody(e.target.value)}
+            className={ADMIN_TEXTAREA}
+          />
+        </AdminField>
         <div className="sm:col-span-2">
           <ImageDropzone
             images={coverImages}

@@ -1,13 +1,16 @@
 import Image from "next/image";
+import { useContent } from "@/components/content-provider";
 import Link from "next/link";
 import Navbar from "@/components/navbar";
 
 export default function SriLankaHero() {
+  const { c } = useContent();
+
   return (
     <section className="relative min-h-screen w-full overflow-hidden bg-[#0B2B2B]">
       {/* Background */}
       <Image
-        src="/images/bg.webp"
+        src={c("sri_lanka.hero.backgroundImage")}
         alt="Aerial view of a Sri Lankan coastline with palm trees"
         fill
         priority
@@ -21,14 +24,14 @@ export default function SriLankaHero() {
 
       {/* Copy */}
       <div className="relative z-30 flex min-h-screen flex-col justify-start px-6 pt-40 sm:px-12 sm:pt-48 lg:px-20 lg:pt-56">
-        <span className="italic text-white/90 text-lg sm:text-xl">Explore</span>
+        <span className="italic text-white/90 text-lg sm:text-xl">{c("sri_lanka.hero.eyebrow")}</span>
 
         <div className="relative -mt-2 w-fit">
           <h1
             className="text-[5.5rem] leading-[0.9] text-white drop-shadow-lg sm:text-[7.5rem] lg:text-[10rem]"
             style={{ fontFamily: "var(--font-script)" }}
           >
-            Sri Lanka
+            {c("sri_lanka.hero.title")}
           </h1>
 
           {/* Butterfly, floating above the headline text */}
@@ -43,17 +46,13 @@ export default function SriLankaHero() {
           </div>
         </div>
 
-        <p className="mx-auto mt-6 max-w-lg text-center text-base leading-relaxed text-white/90 sm:text-lg">
-          Stay at Dona&apos;s Villa — your peaceful coastal retreat just 25
-          minutes from Colombo Airport. Comfortable rooms and reliable
-          airport transfers, all in one place.
-        </p>
+        <p className="mx-auto mt-6 max-w-lg text-center text-base leading-relaxed text-white/90 sm:text-lg">{c("sri_lanka.hero.body")}</p>
 
         <Link
           href="/sri-lanka/airbnb"
           className="mx-auto mt-6 block w-fit rounded-full bg-[#8DC63F] px-10 py-4 text-base font-semibold text-[#1F3D2E] shadow-md transition hover:bg-[#72A62E]"
         >
-          Book Your Stay
+          {c("sri_lanka.hero.ctaLabel")}
         </Link>
       </div>
 

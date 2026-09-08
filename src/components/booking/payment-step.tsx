@@ -71,6 +71,24 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
       {/* Both fields are optional on older bookings made before the price
           breakdown existed, and both are rendered below — so both must be
           present, or formatMoney(undefined) renders a literal "NaN". */}
+      {/* Standalone transfer line for properties without city tax, where the
+          breakdown block below doesn't render at all. */}
+      {booking &&
+        Number(booking.cityTax ?? 0) === 0 &&
+        booking.transportPrice != null &&
+        Number(booking.transportPrice) > 0 && (
+          <div className="mt-4 rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
+            <div className="flex items-center justify-between">
+              <span>Airport transfer</span>
+              <span>{formatMoney(booking.transportPrice, booking.currency)}</span>
+            </div>
+            <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-[#153C4D]">
+              <span>Total</span>
+              <span>{formatMoney(booking.totalPrice, booking.currency)}</span>
+            </div>
+          </div>
+        )}
+
       {booking && booking.accommodationPrice != null && Number(booking.cityTax ?? 0) > 0 && (
         <div className="mt-4 rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
           <div className="flex items-center justify-between">
@@ -81,6 +99,12 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
             <span>City tax</span>
             <span>{formatMoney(booking.cityTax!, booking.currency)}</span>
           </div>
+          {booking.transportPrice != null && Number(booking.transportPrice) > 0 && (
+            <div className="mt-1 flex items-center justify-between">
+              <span>Airport transfer</span>
+              <span>{formatMoney(booking.transportPrice, booking.currency)}</span>
+            </div>
+          )}
           <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-[#153C4D]">
             <span>Total</span>
             <span>{formatMoney(booking.totalPrice, booking.currency)}</span>

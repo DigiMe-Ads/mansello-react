@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { CartProvider } from "@/components/marketplace/cart-provider";
+import { ContentProvider } from "@/components/content-provider";
 import { initClickHeatmapTracker } from "@/lib/analytics/click-tracker";
 
 // --- Public pages -----------------------------------------------------------
@@ -53,6 +54,7 @@ const AdminOrders = lazy(() => import("@/pages/admin/(protected)/marketplace/ord
 const AdminLeads = lazy(() => import("@/pages/admin/(protected)/leads/page"));
 const AdminBlog = lazy(() => import("@/pages/admin/(protected)/blog/page"));
 const AdminTestimonials = lazy(() => import("@/pages/admin/(protected)/testimonials/page"));
+const AdminContent = lazy(() => import("@/pages/admin/(protected)/content/page"));
 const AdminGuestInfoForm = lazy(() => import("@/pages/admin/(protected)/settings/guest-info-form/page"));
 const AdminUsers = lazy(() => import("@/pages/admin/(protected)/users/page"));
 const AdminHeatmap = lazy(() => import("@/pages/admin/(protected)/heatmap/page"));
@@ -89,80 +91,83 @@ function ClickHeatmapTracker() {
 
 export default function App() {
   return (
-    <CartProvider>
-      <ScrollToTop />
-      <ClickHeatmapTracker />
-      <Routes>
-        <Route path="/" element={<Home />} />
+    <ContentProvider>
+      <CartProvider>
+        <ScrollToTop />
+        <ClickHeatmapTracker />
+        <Routes>
+          <Route path="/" element={<Home />} />
 
-        {/* Italy */}
-        <Route path="/italy" element={<ItalyHome />} />
-        <Route path="/italy/about" element={<ItalyAbout />} />
-        <Route path="/italy/airbnb" element={<ItalyAirbnb />} />
-        <Route path="/italy/blog" element={<ItalyBlog />} />
-        <Route path="/italy/blog/:slug" element={<ItalyBlogPost />} />
-        <Route path="/italy/destinations/:slug" element={<ItalyDestination />} />
-        <Route path="/italy/booking/confirmation" element={<ItalyBookingConfirmation />} />
-        <Route path="/italy/contact" element={<ItalyContact />} />
-        <Route path="/italy/terms" element={<ItalyTerms />} />
-        <Route path="/italy/privacy" element={<ItalyPrivacy />} />
+          {/* Italy */}
+          <Route path="/italy" element={<ItalyHome />} />
+          <Route path="/italy/about" element={<ItalyAbout />} />
+          <Route path="/italy/airbnb" element={<ItalyAirbnb />} />
+          <Route path="/italy/blog" element={<ItalyBlog />} />
+          <Route path="/italy/blog/:slug" element={<ItalyBlogPost />} />
+          <Route path="/italy/destinations/:slug" element={<ItalyDestination />} />
+          <Route path="/italy/booking/confirmation" element={<ItalyBookingConfirmation />} />
+          <Route path="/italy/contact" element={<ItalyContact />} />
+          <Route path="/italy/terms" element={<ItalyTerms />} />
+          <Route path="/italy/privacy" element={<ItalyPrivacy />} />
 
-        {/* Sri Lanka */}
-        <Route path="/sri-lanka" element={<SriLankaHome />} />
-        <Route path="/sri-lanka/about" element={<SriLankaAbout />} />
-        <Route path="/sri-lanka/airbnb" element={<SriLankaAirbnb />} />
-        <Route path="/sri-lanka/blog" element={<SriLankaBlog />} />
-        <Route path="/sri-lanka/blog/:slug" element={<SriLankaBlogPost />} />
-        <Route path="/sri-lanka/booking/confirmation" element={<SriLankaBookingConfirmation />} />
-        <Route path="/sri-lanka/contact" element={<SriLankaContact />} />
-        <Route path="/sri-lanka/transport" element={<SriLankaTransport />} />
-        <Route path="/sri-lanka/transport/packages/:slug" element={<SriLankaTourPackage />} />
-        <Route path="/sri-lanka/destinations/:slug" element={<SriLankaDestination />} />
-        <Route path="/sri-lanka/terms" element={<SriLankaTerms />} />
-        <Route path="/sri-lanka/privacy" element={<SriLankaPrivacy />} />
+          {/* Sri Lanka */}
+          <Route path="/sri-lanka" element={<SriLankaHome />} />
+          <Route path="/sri-lanka/about" element={<SriLankaAbout />} />
+          <Route path="/sri-lanka/airbnb" element={<SriLankaAirbnb />} />
+          <Route path="/sri-lanka/blog" element={<SriLankaBlog />} />
+          <Route path="/sri-lanka/blog/:slug" element={<SriLankaBlogPost />} />
+          <Route path="/sri-lanka/booking/confirmation" element={<SriLankaBookingConfirmation />} />
+          <Route path="/sri-lanka/contact" element={<SriLankaContact />} />
+          <Route path="/sri-lanka/transport" element={<SriLankaTransport />} />
+          <Route path="/sri-lanka/transport/packages/:slug" element={<SriLankaTourPackage />} />
+          <Route path="/sri-lanka/destinations/:slug" element={<SriLankaDestination />} />
+          <Route path="/sri-lanka/terms" element={<SriLankaTerms />} />
+          <Route path="/sri-lanka/privacy" element={<SriLankaPrivacy />} />
 
-        {/* Sri Lanka marketplace */}
-        <Route path="/sri-lanka/marketplace" element={<Marketplace />} />
-        <Route path="/sri-lanka/marketplace/cart" element={<MarketplaceCart />} />
-        <Route path="/sri-lanka/marketplace/checkout" element={<MarketplaceCheckout />} />
-        <Route path="/sri-lanka/marketplace/order/:id" element={<MarketplaceOrder />} />
+          {/* Sri Lanka marketplace */}
+          <Route path="/sri-lanka/marketplace" element={<Marketplace />} />
+          <Route path="/sri-lanka/marketplace/cart" element={<MarketplaceCart />} />
+          <Route path="/sri-lanka/marketplace/checkout" element={<MarketplaceCheckout />} />
+          <Route path="/sri-lanka/marketplace/order/:id" element={<MarketplaceOrder />} />
 
-        {/* Guest booking info */}
-        <Route path="/booking-info/:token" element={<BookingInfo />} />
+          {/* Guest booking info */}
+          <Route path="/booking-info/:token" element={<BookingInfo />} />
 
-        {/* Admin */}
-        <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route
-          path="/admin/login"
-          element={
-            <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
-              <AdminLogin />
-            </Suspense>
-          }
-        />
-        <Route
-          element={
-            <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
-              <ProtectedAdminLayout />
-            </Suspense>
-          }
-        >
-          <Route path="/admin/dashboard" element={<AdminDashboard />} />
-          <Route path="/admin/villas" element={<AdminVillas />} />
-          <Route path="/admin/villas/:propertyId" element={<AdminVillaDetail />} />
-          <Route path="/admin/marketplace/products" element={<AdminProducts />} />
-          <Route path="/admin/marketplace/orders" element={<AdminOrders />} />
-          <Route path="/admin/leads" element={<AdminLeads />} />
-          <Route path="/admin/blog" element={<AdminBlog />} />
-          <Route path="/admin/testimonials" element={<AdminTestimonials />} />
-          <Route path="/admin/settings/guest-info-form" element={<AdminGuestInfoForm />} />
-          <Route path="/admin/users" element={<AdminUsers />} />
-          <Route path="/admin/heatmap" element={<AdminHeatmap />} />
-        </Route>
+          {/* Admin */}
+          <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
+          <Route
+            path="/admin/login"
+            element={
+              <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
+                <AdminLogin />
+              </Suspense>
+            }
+          />
+          <Route
+            element={
+              <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
+                <ProtectedAdminLayout />
+              </Suspense>
+            }
+          >
+            <Route path="/admin/dashboard" element={<AdminDashboard />} />
+            <Route path="/admin/villas" element={<AdminVillas />} />
+            <Route path="/admin/villas/:propertyId" element={<AdminVillaDetail />} />
+            <Route path="/admin/marketplace/products" element={<AdminProducts />} />
+            <Route path="/admin/marketplace/orders" element={<AdminOrders />} />
+            <Route path="/admin/leads" element={<AdminLeads />} />
+            <Route path="/admin/blog" element={<AdminBlog />} />
+            <Route path="/admin/testimonials" element={<AdminTestimonials />} />
+          <Route path="/admin/content" element={<AdminContent />} />
+            <Route path="/admin/settings/guest-info-form" element={<AdminGuestInfoForm />} />
+            <Route path="/admin/users" element={<AdminUsers />} />
+            <Route path="/admin/heatmap" element={<AdminHeatmap />} />
+          </Route>
 
-        {/* Fallback */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
-    </CartProvider>
+          {/* Fallback */}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Routes>
+      </CartProvider>
+    </ContentProvider>
   );
 }

@@ -1,13 +1,16 @@
 import Image from "next/image";
+import { useContent } from "@/components/content-provider";
 import Link from "next/link";
 import Navbar from "@/components/italy/navbar";
 
 export default function ItalyHero() {
+  const { c } = useContent();
+
   return (
     <section className="relative min-h-screen w-full overflow-hidden bg-[#0B2B2B]">
       {/* Background */}
       <Image
-        src="/images/italy-bg.jpg"
+        src={c("italy.hero.backgroundImage")}
         alt="Entrance of The Nest Bologna"
         fill
         priority
@@ -20,14 +23,14 @@ export default function ItalyHero() {
 
       {/* Copy */}
       <div className="relative z-30 flex min-h-screen flex-col justify-start px-6 pt-24 sm:px-12 sm:pt-32 lg:px-20 lg:pt-40">
-        <span className="italic text-white/90 text-lg sm:text-xl">Explore</span>
+        <span className="italic text-white/90 text-lg sm:text-xl">{c("italy.hero.eyebrow")}</span>
 
         <div className="relative -mt-2 w-fit">
           <h1
             className="text-[5.5rem] leading-[0.9] text-white drop-shadow-lg sm:text-[7.5rem] lg:text-[10rem]"
             style={{ fontFamily: "var(--font-script)" }}
           >
-            Italy
+            {c("italy.hero.title")}
           </h1>
 
           {/* Butterfly, floating above the headline text */}
@@ -42,17 +45,13 @@ export default function ItalyHero() {
           </div>
         </div>
 
-        <p className="mx-auto mt-10 max-w-3xl text-center text-base leading-relaxed text-white/90 sm:text-lg">
-          Stay at The Nest Bologna — your cosy retreat in the heart of Emilia-Romagna. 
-          Enjoy comfortable rooms, warm hospitality, and easy access to Bologna Guglielmo 
-          Marconi Airport, all in one place.
-        </p>
+        <p className="mx-auto mt-10 max-w-3xl text-center text-base leading-relaxed text-white/90 sm:text-lg">{c("italy.hero.body")}</p>
 
         <Link
           href="/italy/airbnb"
           className="mx-auto mt-6 block w-fit rounded-full bg-[#8DC63F] px-10 py-4 text-base font-semibold text-[#1F3D2E] shadow-md transition hover:bg-[#72A62E]"
         >
-          Book Your Stay
+          {c("italy.hero.ctaLabel")}
         </Link>
       </div>
     </section>

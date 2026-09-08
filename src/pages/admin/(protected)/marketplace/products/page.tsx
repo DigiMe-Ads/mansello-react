@@ -24,6 +24,8 @@ import { uploadImages } from "@/lib/api/uploads";
 import { ApiRequestError, isConflict } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
 import type { Category, LowStockItem, Product, ShippingRate } from "@/lib/api/types";
+import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
+import { AdminField } from "@/components/admin/admin-field";
 
 export default function AdminProductsPage() {
   return (
@@ -610,13 +612,13 @@ function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: numbe
       <div className="grid gap-3 sm:grid-cols-2">
         <input
           required
-          placeholder="Category name"
+          placeholder="e.g. Pantry"
           value={name}
           onChange={(e) => setName(e.target.value)}
           className={ADMIN_INPUT}
         />
         <input
-          placeholder="Slug (optional, derived from name)"
+          placeholder="Leave blank to generate from the name"
           value={slug}
           onChange={(e) => setSlug(e.target.value)}
           className={ADMIN_INPUT}
@@ -665,18 +667,19 @@ function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: numbe
 
 // Weight-based shipping — admin sets a per-kg price for each whole kg from
 // 1 to 15 (rates rarely scale linearly, so each band gets its own price).
-// See BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md. Checkout multiplies a
-// cart's total weight (sum of product.weightKg × quantity) by whichever
-// band it lands in — computeShippingFee in lib/shipping.ts.
+// See BACKEND_CHANGES_SHIPPING_FLAT_BAND_PRICING.md. Each band holds the FLAT
+// delivery price for an order of that weight — checkout looks up the band and
+// charges it directly, with no multiplication (computeShippingFee in
+// lib/shipping.ts).
 const DEFAULT_SHIPPING_ROWS = Array.from({ length: 15 }, (_, i) => ({
   fromKg: i + 1,
   toKg: i + 1,
-  pricePerKg: 0,
+  price: 0,
 }));
 
 function ShippingRatesSection() {
   const { authedFetch } = useAdminAuth();
-  const [rows, setRows] = useState<{ fromKg: number; toKg: number; pricePerKg: number }[]>(DEFAULT_SHIPPING_ROWS);
+  const [rows, setRows] = useState<{ fromKg: number; toKg: number; price: number }[]>(DEFAULT_SHIPPING_ROWS);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
@@ -689,7 +692,7 @@ function ShippingRatesSection() {
           setRows(
             [...rates]
               .sort((a, b) => a.fromKg - b.fromKg)
-              .map((r) => ({ fromKg: r.fromKg, toKg: r.toKg, pricePerKg: Number(r.pricePerKg) }))
+              .map((r) => ({ fromKg: r.fromKg, toKg: r.toKg, price: Number(r.price ?? r.pricePerKg ?? 0) }))
           );
         }
       })
@@ -703,8 +706,8 @@ function ShippingRatesSection() {
       .finally(() => setLoading(false));
   }, []);
 
-  function updateRow(index: number, pricePerKg: number) {
-    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, pricePerKg } : r)));
+  function updateRow(index: number, price: number) {
+    setRows((prev) => prev.map((r, i) => (i === index ? { ...r, price } : r)));
     setSuccess(false);
   }
 
@@ -724,10 +727,17 @@ function ShippingRatesSection() {
 
   return (
     <div className="rounded-2xl bg-white p-6 shadow-sm">
-      <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Shipping Rates</h3>
+      <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Delivery Charges by Order Weight</h3>
       <p className="mt-1 text-xs text-slate-400">
-        Price per kg for each weight band — the delivery fee at checkout is the cart&apos;s total weight (unit
-        weight × quantity, summed across items) × whichever band it falls in.
+        Set the <strong>total delivery charge</strong> for an order of each weight. At checkout we add up the
+        cart&apos;s weight (each product&apos;s unit weight × quantity), round <strong>up</strong> to the next whole
+        kilogram, and charge the matching band exactly as entered — it is not multiplied by the weight.
+      </p>
+      <p className="mt-2 rounded-lg bg-slate-50 px-3 py-2 text-xs text-slate-500">
+        Example: with 3kg set to <strong>9.99</strong>, an order weighing 2.4kg rounds up to 3kg and is charged{" "}
+        <strong>$9.99</strong> delivery. Orders heavier than the last band you fill in are charged that band&apos;s
+        price. Leave a band at 0 if you don&apos;t deliver that weight — bands left at 0 are skipped, and if every
+        band is 0 we fall back to a flat ${FLAT_SHIPPING_FEE} delivery fee.
       </p>
 
       {error && <p className="mt-3 rounded-lg bg-amber-50 px-4 py-2 text-sm text-amber-800">{error}</p>}
@@ -738,12 +748,16 @@ function ShippingRatesSection() {
         <div className="mt-4 grid grid-cols-2 gap-x-6 gap-y-2 sm:grid-cols-3 lg:grid-cols-5">
           {rows.map((row, i) => (
             <label key={`${row.fromKg}-${row.toKg}`} className="flex flex-col gap-1 text-xs font-semibold text-slate-400">
-              {row.fromKg === row.toKg ? `${row.fromKg}kg` : `${row.fromKg}-${row.toKg}kg`}
+              <span className="text-slate-500">
+                Order weight {row.fromKg === row.toKg ? `${row.fromKg}kg` : `${row.fromKg}-${row.toKg}kg`}
+              </span>
+              <span className="font-normal normal-case text-slate-400">Delivery charge (USD)</span>
               <input
                 type="number"
                 min={0}
                 step="0.01"
-                value={row.pricePerKg}
+                aria-label={`Delivery charge in US dollars for an order weighing ${row.fromKg}kg`}
+                value={row.price}
                 onChange={(e) => updateRow(i, Number(e.target.value))}
                 className={ADMIN_INPUT}
               />
@@ -830,13 +844,27 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
             </option>
           ))}
         </select>
-        <input required placeholder="SKU" value={sku} onChange={(e) => setSku(e.target.value)} className={ADMIN_INPUT} />
-        <input required placeholder="Name" value={name} onChange={(e) => setName(e.target.value)} className={`${ADMIN_INPUT} sm:col-span-2`} />
-        <textarea required placeholder="Description" rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={`${ADMIN_TEXTAREA} sm:col-span-2`} />
-        <input required type="number" min={0} step="0.01" placeholder="Price (USD)" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
-        <input required type="number" min={0} placeholder="Initial stock" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} className={ADMIN_INPUT} />
-        <input type="number" min={0} placeholder="Low stock threshold" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className={ADMIN_INPUT} />
-        <input type="number" min={0} step="0.01" placeholder="Weight per unit (kg)" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={ADMIN_INPUT} />
+        <AdminField label="SKU" required help="Your own product code — must be unique.">
+          <input required placeholder="e.g. RAGU-250" value={sku} onChange={(e) => setSku(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Product name" required className="sm:col-span-2" help="Shown to customers in the shop and cart.">
+          <input required placeholder="e.g. Ragù Bolognese" value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Description" required className="sm:col-span-2" help="Shown on the product card in the marketplace.">
+          <textarea required rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={ADMIN_TEXTAREA} />
+        </AdminField>
+        <AdminField label="Price (USD)" required help="What the customer pays per unit.">
+          <input required type="number" min={0} step="0.01" placeholder="0.00" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Initial stock" required help="How many units you have right now.">
+          <input required type="number" min={0} placeholder="0" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Low stock alert at" help="Flags the product in this list once stock drops to this number.">
+          <input type="number" min={0} placeholder="0" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Weight per unit (kg)" help="Used to work out the delivery charge at checkout. Leave 0 if delivery is free.">
+          <input type="number" min={0} step="0.01" placeholder="0.00" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <button

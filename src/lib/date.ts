@@ -64,3 +64,19 @@ export function buildMonthGrid(year: number, month: number): MonthGridData {
 export function nextMonth(year: number, month: number): { year: number; month: number } {
   return month === 11 ? { year: year + 1, month: 0 } : { year, month: month + 1 };
 }
+
+export function prevMonth(year: number, month: number): { year: number; month: number } {
+  return month === 0 ? { year: year - 1, month: 11 } : { year, month: month - 1 };
+}
+
+/** Inclusive list of every day-key from `start` to `end`. */
+export function dateKeysInRange(start: string, end: string): string[] {
+  const [from, to] = start <= end ? [start, end] : [end, start];
+  const keys: string[] = [];
+  let cursor = from;
+  while (cursor <= to) {
+    keys.push(cursor);
+    cursor = addDaysToKey(cursor, 1);
+  }
+  return keys;
+}

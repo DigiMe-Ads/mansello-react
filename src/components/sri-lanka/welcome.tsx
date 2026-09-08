@@ -3,37 +3,24 @@
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { ReservationWidget } from "@/components/booking/reservation-widget";
+import { useContent } from "@/components/content-provider";
 
 // How long each photo stays up before auto-advancing to the next one.
 const AUTO_SWAP_INTERVAL_MS = 5000;
 
-const villaImages = [
-  {
-    src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-front-facade.webp",
-    alt: "Front facade of Dona's Villa",
-  },
-  {
-    src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-garden-1.webp",
-    alt: "Garden at Dona's Villa",
-  },
-  {
-    src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-veranda-1.webp",
-    alt: "Veranda at Dona's Villa",
-  },
-  {
-    src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-garden-pathway-1.webp",
-    alt: "Garden pathway at Dona's Villa",
-  },
-];
 
-const highlights = [
-  "Rooms for 1–8 guests",
-  "25 minutes from Colombo Airport (CMB)",
-  "Airport pick-up and drop-off available",
-  "Air-conditioned rooms",
-];
 
 export default function Welcome() {
+  const { c, cList } = useContent();
+
+  const villaImages = [
+    { src: c("sri_lanka.welcome.image1"), alt: "Front facade of Dona's Villa" },
+    { src: c("sri_lanka.welcome.image2"), alt: "Garden at Dona's Villa" },
+    { src: c("sri_lanka.welcome.image3"), alt: "Veranda at Dona's Villa" },
+    { src: c("sri_lanka.welcome.image4"), alt: "Garden pathway at Dona's Villa" },
+  ];
+  const highlights = cList("sri_lanka.welcome.highlights");
+
   const [activeImage, setActiveImage] = useState(0);
 
   // Auto-advance through the photos, same as clicking the dots — clicking a
@@ -51,19 +38,12 @@ export default function Welcome() {
         {/* Left column */}
         <div>
           <h2 className="text-3xl font-bold text-[#153C4D] sm:text-4xl">
-            Welcome to Dona&apos;s Villa
+            {c("sri_lanka.welcome.title")}
           </h2>
 
-          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
-            Tucked away in the quiet fishing village of Pamunugama, between the Negombo
-            lagoon and the Indian Ocean, Dona&apos;s Villa is a cosy, family-run
-            stay built around one idea: arriving in Sri Lanka should feel like coming home.
-          </p>
+          <p className="mt-5 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">{c("sri_lanka.welcome.paragraph1")}</p>
 
-          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
-            Wake up to birdsong and reach Bandaranaike International Airport in around 25 minutes —
-            perfect for your first or last night on the island, or as a relaxed base near Colombo and Negombo.
-          </p>
+          <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">{c("sri_lanka.welcome.paragraph2")}</p>
 
           <div className="mt-8 flex gap-6">
             <div className="flex h-28 w-28 shrink-0 flex-col items-center justify-center rounded-2xl bg-[#1B4B4F] text-center">

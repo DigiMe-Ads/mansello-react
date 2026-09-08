@@ -189,7 +189,7 @@ function NewBlockForm({
         />
         <input
           type="text"
-          placeholder="Reason (optional, e.g. maintenance)"
+          placeholder="Why these dates are blocked — e.g. maintenance"
           value={reason}
           onChange={(e) => setReason(e.target.value)}
           className={`${ADMIN_INPUT} flex-1`}

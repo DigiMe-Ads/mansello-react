@@ -10,6 +10,7 @@ import { ApiRequestError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 import type { Booking, Room } from "@/lib/api/types";
+import { AdminField } from "@/components/admin/admin-field";
 
 const STATUS_OPTIONS = ["", "pending_payment", "confirmed", "paid_offline", "cancelled", "completed"];
 
@@ -267,27 +268,44 @@ function OfflineBookingForm({
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm">
       {error && <p className="mb-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-3">
-        <input required placeholder="Guest name" value={guestName} onChange={(e) => setGuestName(e.target.value)} className={ADMIN_INPUT} />
-        <input required type="email" placeholder="Email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} className={ADMIN_INPUT} />
-        <input required placeholder="Phone" value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} className={ADMIN_INPUT} />
-        <input required type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={ADMIN_INPUT} />
-        <input required type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={ADMIN_INPUT} />
-        <input required type="number" min={1} placeholder="Guests" value={guests} onChange={(e) => setGuests(Number(e.target.value))} className={ADMIN_INPUT} />
+        <AdminField label="Guest name" required>
+          <input required value={guestName} onChange={(e) => setGuestName(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Email address" required>
+          <input required type="email" value={guestEmail} onChange={(e) => setGuestEmail(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Phone number" required>
+          <input required value={guestPhone} onChange={(e) => setGuestPhone(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Check-in date" required>
+          <input required type="date" value={checkIn} onChange={(e) => setCheckIn(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Check-out date" required>
+          <input required type="date" value={checkOut} onChange={(e) => setCheckOut(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
+        <AdminField label="Number of guests" required>
+          <input required type="number" min={1} value={guests} onChange={(e) => setGuests(Number(e.target.value))} className={ADMIN_INPUT} />
+        </AdminField>
         {!hasRooms && (
-          <input required type="number" min={1} placeholder="Rooms" value={rooms} onChange={(e) => setRooms(Number(e.target.value))} className={ADMIN_INPUT} />
+          <AdminField label="Number of rooms" required>
+            <input required type="number" min={1} value={rooms} onChange={(e) => setRooms(Number(e.target.value))} className={ADMIN_INPUT} />
+          </AdminField>
         )}
         {cityTaxEnabled && (
-          <input
-            type="number"
-            min={0}
-            max={guests}
-            placeholder="Children under 14 (no city tax)"
-            value={childrenUnder14}
-            onChange={(e) => setChildrenUnder14(Math.max(0, Math.min(Number(e.target.value), guests)))}
-            className={ADMIN_INPUT}
-          />
+          <AdminField label="Children under 14" help="Exempt from city tax.">
+            <input
+              type="number"
+              min={0}
+              max={guests}
+              value={childrenUnder14}
+              onChange={(e) => setChildrenUnder14(Math.max(0, Math.min(Number(e.target.value), guests)))}
+              className={ADMIN_INPUT}
+            />
+          </AdminField>
         )}
-        <input type="number" min={0} step="0.01" placeholder="Price override (optional)" value={totalPriceOverride} onChange={(e) => setTotalPriceOverride(e.target.value)} className={ADMIN_INPUT} />
+        <AdminField label="Price override" help="Leave blank to use the calculated price.">
+          <input type="number" min={0} step="0.01" placeholder="0.00" value={totalPriceOverride} onChange={(e) => setTotalPriceOverride(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
       </div>
 
       {hasRooms && (
@@ -364,14 +382,14 @@ function CancelBookingForm({
         type="number"
         min={0}
         step="0.01"
-        placeholder="Refund override (optional, defaults to policy)"
+        placeholder="Refund amount — leave blank to use the cancellation policy"
         value={refundOverride}
         onChange={(e) => setRefundOverride(e.target.value)}
         className={ADMIN_INPUT}
       />
       <input
         type="text"
-        placeholder="Reason (optional)"
+        placeholder="Reason for cancelling (optional)"
         value={reason}
         onChange={(e) => setReason(e.target.value)}
         className={ADMIN_INPUT}

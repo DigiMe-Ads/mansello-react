@@ -8,6 +8,25 @@ export interface PricingTier {
   pricePerNight: string;
 }
 
+// Airport transfer pricing for a property, quoted per party size rather than
+// per person — a 4-guest transfer is one vehicle, not 4x the 1-guest price.
+// Optional add-on at booking: the guest ticks it, the server looks up the row
+// matching their guest count and adds it once to the total. Spec'd in
+// BACKEND_CHANGES_VILLA_TRANSPORT.md.
+export interface TransportRate {
+  id: string;
+  propertyId: string;
+  guestCount: number; // 1-8
+  price: string;
+  active: boolean;
+}
+
+export interface UpsertTransportRateInput {
+  guestCount: number;
+  price: number;
+  active: boolean;
+}
+
 // A per-guest, per-night municipal tax band — e.g. Bologna's city tax, which
 // tiers by the accommodation's price-per-person/night. Not in
 // API_DOCUMENTATION.md yet — spec'd in BACKEND_CHANGES_CITY_TAX.md.
@@ -36,6 +55,11 @@ export interface Property {
   createdAt: string;
   updatedAt: string;
   pricingTiers: PricingTier[];
+  // Airport-transfer add-on. Absent/false on a not-yet-updated backend, which
+  // reads as "this property doesn't offer transfers" and hides the option
+  // entirely rather than erroring. See BACKEND_CHANGES_VILLA_TRANSPORT.md.
+  transportEnabled?: boolean;
+  transportRates?: TransportRate[];
   // City/tourist tax config — currently only Bologna's has this enabled.
   // Optional so a property from a not-yet-updated backend simply reads as
   // "no tax", not undefined/crashing.
@@ -171,6 +195,9 @@ export interface Booking {
   // not-yet-updated backend still renders — falls back to showing just
   // totalPrice with no breakdown.
   accommodationPrice?: string;
+  // Set only when the guest added an airport transfer. Absent means none was
+  // requested (or the booking predates the feature).
+  transportPrice?: string;
   cityTax?: string;
   childrenUnder14?: number;
   totalPrice: string;
@@ -204,6 +231,11 @@ export interface CreateBookingInput {
   // (14, for Bologna) — exempt from city tax. Ignored server-side for
   // properties with cityTaxEnabled: false.
   childrenUnder14?: number;
+  // Whether the guest wants the airport transfer add-on. Deliberately a
+  // boolean, not an amount: the server looks the price up from the property's
+  // transportRates by guest count, so the client can never influence what is
+  // charged. See BACKEND_CHANGES_VILLA_TRANSPORT.md.
+  transportRequested?: boolean;
 }
 
 export interface CreateBookingResponse {
@@ -342,7 +374,15 @@ export interface ShippingRate {
   id: string;
   fromKg: number;
   toKg: number;
-  pricePerKg: string;
+  // FLAT delivery price for an order in this weight band — NOT a per-kg rate.
+  // A 3kg order in a band priced 9.99 ships for 9.99, full stop. This was
+  // previously named `pricePerKg` and multiplied by the cart weight, which
+  // double-counted: bands are 1kg wide, so the band already encodes the
+  // weight. See BACKEND_CHANGES_SHIPPING_FLAT_BAND_PRICING.md.
+  price: string;
+  // Legacy name, still read so a backend that hasn't been updated yet keeps
+  // working. Never write this. Remove once the backend serves `price`.
+  pricePerKg?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -350,7 +390,7 @@ export interface ShippingRate {
 export interface UpsertShippingRateInput {
   fromKg: number;
   toKg: number;
-  pricePerKg: number;
+  price: number;
 }
 
 // --- Admin ---

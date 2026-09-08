@@ -1,4 +1,4 @@
-import type { CityTaxBand, Offer, PricingTier, Property, RateOverride, Room } from "./types";
+import type { CityTaxBand, Offer, PricingTier, Property, RateOverride, Room, TransportRate } from "./types";
 import { addDaysToKey } from "../date";
 
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
@@ -165,6 +165,9 @@ export interface StayBreakdown extends StayTotal {
   // "X% OFF" badge honest instead of implying a uniform discount that isn't
   // actually uniform (e.g. an offer window covering only part of the stay).
   discountPercentApplied?: number;
+  // One-off airport-transfer charge, 0 when not requested or not offered.
+  // Included in grandTotal.
+  transportPrice: number;
 }
 
 export function computeStayBreakdown(
@@ -176,7 +179,8 @@ export function computeStayBreakdown(
   property: Pick<Property, "cityTaxEnabled" | "cityTaxMaxNights" | "cityTaxExemptAgeUnder" | "cityTaxBands">,
   childrenUnder14 = 0,
   rateOverrides: RateOverride[] = [],
-  offers: Offer[] = []
+  offers: Offer[] = [],
+  transportPrice = 0
 ): StayBreakdown | null {
   const tier = findPricingTier(tiers, guestCount, rooms);
   if (!tier) return null;
@@ -187,7 +191,9 @@ export function computeStayBreakdown(
   const dateKeys = nightlyDateKeys(checkIn, checkOut);
   const basePrices = dateKeys.map((date) => resolveNightlyPriceForTier(tier, rateOverrides, date));
 
-  return buildBreakdownFromNightlyPrices(dateKeys, basePrices, nights, guestCount, property, childrenUnder14, offers);
+  return buildBreakdownFromNightlyPrices(
+    dateKeys, basePrices, nights, guestCount, property, childrenUnder14, offers, transportPrice
+  );
 }
 
 // --- Individually-bookable rooms (e.g. Dona's Villa) — pricing is the sum
@@ -246,7 +252,8 @@ export function computeRoomsStayBreakdown(
   property: Pick<Property, "cityTaxEnabled" | "cityTaxMaxNights" | "cityTaxExemptAgeUnder" | "cityTaxBands">,
   childrenUnder14 = 0,
   rateOverrides: RateOverride[] = [],
-  offers: Offer[] = []
+  offers: Offer[] = [],
+  transportPrice = 0
 ): StayBreakdown | null {
   if (selectedRoomIds.length === 0) return null;
 
@@ -261,7 +268,9 @@ export function computeRoomsStayBreakdown(
     selected.reduce((sum, r) => sum + resolveNightlyPriceForRoom(r, rateOverrides, date), 0)
   );
 
-  return buildBreakdownFromNightlyPrices(dateKeys, basePrices, nights, guestCount, property, childrenUnder14, offers);
+  return buildBreakdownFromNightlyPrices(
+    dateKeys, basePrices, nights, guestCount, property, childrenUnder14, offers, transportPrice
+  );
 }
 
 export interface PricingMatrix {
@@ -293,6 +302,21 @@ export function pivotTiersByRooms(tiers: PricingTier[]): PricingMatrix {
 
 function dateWithinRange(dateKey: string, startDate: string, endDate: string): boolean {
   return dateKey >= startDate.slice(0, 10) && dateKey <= endDate.slice(0, 10);
+}
+
+/**
+ * Airport-transfer price for a party of this size, or null when the property
+ * offers no transfer or has no row for that guest count.
+ *
+ * Quoted per party, not per person — a transfer for 4 is one vehicle. It is a
+ * one-off charge on the booking, never multiplied by nights.
+ */
+export function resolveTransportPrice(
+  rates: TransportRate[] | undefined,
+  guestCount: number
+): number | null {
+  const match = rates?.find((r) => r.guestCount === guestCount && r.active);
+  return match ? Number(match.price) : null;
 }
 
 export function resolveNightlyPriceForRoom(room: Room, overrides: RateOverride[], dateKey: string): number {
@@ -331,7 +355,8 @@ function buildBreakdownFromNightlyPrices(
   guestCount: number,
   property: Pick<Property, "cityTaxEnabled" | "cityTaxMaxNights" | "cityTaxExemptAgeUnder" | "cityTaxBands">,
   childrenUnder14: number,
-  offers: Offer[]
+  offers: Offer[],
+  transportPrice = 0
 ): StayBreakdown {
   const discountPercents = dateKeys.map((date) => resolveDiscountPercentForNight(offers, date));
   const finalPrices = basePrices.map((price, i) => price * (1 - discountPercents[i] / 100));
@@ -355,7 +380,8 @@ function buildBreakdownFromNightlyPrices(
     discountAmount,
     discountPercentApplied,
     cityTax,
-    grandTotal: accommodationPrice + cityTax,
+    transportPrice,
+    grandTotal: accommodationPrice + cityTax + transportPrice,
     cityTaxDetail,
   };
 }

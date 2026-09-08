@@ -6,10 +6,10 @@ import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
 import { CheckoutPaymentStep } from "@/components/marketplace/checkout-payment-step";
-import { createOrder, getShippingRates } from "@/lib/api/marketplace";
+import { createOrder } from "@/lib/api/marketplace";
 import { ApiRequestError, isValidationError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
-import { computeShippingFee } from "@/lib/shipping";
+import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
 import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
 import type { CreateOrderResponse, ShippingRate } from "@/lib/api/types";
 import { useSeo } from "@/lib/seo/use-seo";
@@ -17,16 +17,6 @@ import { PAGE_META } from "@/lib/seo/page-meta";
 
 export default function CheckoutPage() {
   const { items, subtotal, totalWeightKg, clear } = useCart();
-
-  const [shippingRates, setShippingRates] = useState<ShippingRate[] | null>(null);
-
-  useEffect(() => {
-    // Best-effort — falls back to the flat fee below if this 404s (endpoint
-    // not live yet) or hasn't resolved by render time.
-    getShippingRates()
-      .then(setShippingRates)
-      .catch(() => setShippingRates([]));
-  }, []);
 
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -42,8 +32,15 @@ export default function CheckoutPage() {
   // to the confirmation page on success, which is what clears it).
   const [paymentInfo, setPaymentInfo] = useState<CreateOrderResponse | null>(null);
 
-  const computedFee = shippingRates?.length ? computeShippingFee(shippingRates, totalWeightKg) : null;
-  const shippingFee = items.length === 0 ? 0 : (computedFee ?? FLAT_SHIPPING_FEE);
+  // Same hook the cart uses, so both pages always quote the same fee.
+  const { shippingFee: liveShippingFee, resolved: feeResolved } = useShippingFee();
+
+  // Frozen at submit. Without this the sidebar keeps recomputing after the
+  // order exists, so a late-arriving rate change could leave the summary
+  // showing a different total from the one the customer is being charged.
+  const [chargedShippingFee, setChargedShippingFee] = useState<number | null>(null);
+
+  const shippingFee = chargedShippingFee ?? liveShippingFee;
   const total = subtotal + shippingFee;
 
   async function handleSubmit(e: React.FormEvent) {
@@ -53,13 +50,17 @@ export default function CheckoutPage() {
     setSubmitError(null);
     setFieldErrors({});
 
+    // Lock the fee to whatever the customer was just shown.
+    const feeAtSubmit = liveShippingFee;
+    setChargedShippingFee(feeAtSubmit);
+
     try {
       const result = await createOrder({
         customerName,
         customerPhone,
         deliveryAddress,
         notes: notes || undefined,
-        shippingFee,
+        shippingFee: feeAtSubmit,
         items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
       });
       setPaymentInfo(result);
