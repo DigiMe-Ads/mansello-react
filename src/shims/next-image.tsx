@@ -35,6 +35,11 @@ export default function Image({
   ...rest
 }: NextImageProps) {
   const resolvedLoading = loading ?? (priority ? "eager" : "lazy");
+  // `loading="eager"` only opts out of lazy-loading — it does not lift the
+  // image above the browser's default *low* priority for images. For a hero
+  // that is the LCP element, that distinction is the whole point, so mirror
+  // Next's behaviour and mark priority images as high-priority fetches too.
+  const resolvedFetchPriority = priority ? "high" : undefined;
 
   if (fill) {
     const fillStyle: CSSProperties = {
@@ -50,6 +55,7 @@ export default function Image({
         alt={alt}
         sizes={sizes}
         loading={resolvedLoading}
+        fetchPriority={resolvedFetchPriority}
         decoding="async"
         className={className}
         style={fillStyle}
@@ -66,6 +72,7 @@ export default function Image({
       height={height}
       sizes={sizes}
       loading={resolvedLoading}
+      fetchPriority={resolvedFetchPriority}
       decoding="async"
       className={className}
       style={style}

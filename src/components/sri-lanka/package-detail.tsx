@@ -8,7 +8,7 @@ export function PackageDetail({ pkg }: { pkg: TourPackage }) {
       <div className="mx-auto max-w-4xl">
         {/* Summary */}
         <p className="text-sm font-semibold uppercase tracking-wide text-[#F5A623]">{pkg.duration}</p>
-        <h1 className="mt-1 text-3xl font-bold text-[#153C4D] sm:text-4xl">{pkg.title}</h1>
+        <h2 className="mt-1 text-3xl font-bold text-[#153C4D] sm:text-4xl">{pkg.title}</h2>
         <p className="mt-2 text-sm text-slate-500 sm:text-base">{pkg.route}</p>
         <p className="mt-4 text-sm leading-relaxed text-slate-600 sm:text-base">{pkg.bestFor}</p>
 
@@ -22,7 +22,7 @@ export function PackageDetail({ pkg }: { pkg: TourPackage }) {
         </ul>
 
         <Link
-          href={`/sri-lanka/transport?package=${encodeURIComponent(pkg.title)}#transfer-request`}
+          href={`/sri-lanka/transport?package=${encodeURIComponent(pkg.title)}#transfer-request-form`}
           className="mt-8 inline-block rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#72A62E]"
         >
           Enquire About This Package
@@ -87,10 +87,10 @@ export function PackageDetail({ pkg }: { pkg: TourPackage }) {
         <div className="mt-16 rounded-3xl bg-[#DCEEEA] px-6 py-10 text-center sm:px-10">
           <h3 className="text-xl font-bold text-[#153C4D] sm:text-2xl">Ready to plan this trip?</h3>
           <p className="mt-2 text-sm text-slate-600">
-            Send us your travel dates and group size, and we&apos;ll get back to you with a flat-rate quote.
+            Send us your travel dates and group size, and we&apos;ll get back to you with a quote.
           </p>
           <Link
-            href={`/sri-lanka/transport?package=${encodeURIComponent(pkg.title)}#transfer-request`}
+            href={`/sri-lanka/transport?package=${encodeURIComponent(pkg.title)}#transfer-request-form`}
             className="mt-5 inline-block rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#72A62E]"
           >
             Enquire About This Package

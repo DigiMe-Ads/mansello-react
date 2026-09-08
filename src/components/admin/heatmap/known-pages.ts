@@ -15,7 +15,6 @@ export const KNOWN_PAGES: KnownPage[] = [
   { site: "italy", path: "/italy", label: "Home" },
   { site: "italy", path: "/italy/about", label: "About" },
   { site: "italy", path: "/italy/airbnb", label: "Apartment / Booking" },
-  { site: "italy", path: "/italy/transport", label: "Transport" },
   { site: "italy", path: "/italy/blog", label: "Blog" },
   { site: "italy", path: "/italy/contact", label: "Contact" },
   { site: "italy", path: "/italy/terms", label: "Terms" },

@@ -52,11 +52,11 @@ export default function OurHome() {
           first and last days in Italy are as relaxed as everything in between.
         </p>
 
-        <p className="mt-5 text-sm leading-relaxed text-slate-500 sm:text-base">
+        {/* <p className="mt-5 text-sm leading-relaxed text-slate-500 sm:text-base">
           Through our Marketplace, we also share a taste of home with those
           far away: genuine Italian pantry favourites from Bologna, boxed up
           and shipped to our own villa in Sri Lanka and beyond.
-        </p>
+        </p> */}
       </div>
 
       <div className="relative z-10 mx-auto mt-14 grid max-w-6xl gap-8 sm:grid-cols-3">

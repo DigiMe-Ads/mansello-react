@@ -24,7 +24,7 @@ const gallery = [
   ],
   [
     {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/new/room 1.jpeg",
+      src: "/images/sri-lanka/airbnb/sri-lanka-home/new/dona-villa-living-room-seating-area.jpeg",
       alt: "Living room seating area at Dona's Villa",
     },
     {

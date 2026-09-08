@@ -1,27 +1,52 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ReservationWidget } from "@/components/booking/reservation-widget";
 
+// How long each photo stays up before auto-advancing to the next one.
+const AUTO_SWAP_INTERVAL_MS = 5000;
+
+// Shape mirrors sri-lanka/welcome.tsx: each slide carries its own alt, so the
+// carousel doesn't announce the same text for all four photos.
 const villaImages = [
-  "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-kitchen-1.webp",
-  "/images/italy/nest-bologna/nest-bologna-exterior-1.webp",
+  {
+    src: "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
+    alt: "Living room at The Nest Bologna",
+  },
+  {
+    src: "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
+    alt: "Bedroom at The Nest Bologna",
+  },
+  {
+    src: "/images/italy/nest-bologna/nest-bologna-kitchen-1.webp",
+    alt: "Kitchen at The Nest Bologna",
+  },
+  {
+    src: "/images/italy/nest-bologna/nest-bologna-exterior-1.webp",
+    alt: "Exterior of The Nest Bologna",
+  },
 ];
 
 const highlights = [
   "Apartment for 1–4 guests",
-  "Easy reach of Bologna Guglielmo Marconi Airport (BLQ)",
   "Fully equipped kitchen",
   "10 minutes from Bologna Main Station",
   "5 minutes from Bologna Fiera",
-  "13 minutes from Bologna Airport",
+  "13 minutes from Bologna Guglielmo Marconi Airport (BLQ)",
 ];
 
 export default function Welcome() {
   const [activeImage, setActiveImage] = useState(0);
+
+  // Auto-advance through the photos, same as clicking the dots — clicking a
+  // dot still works at any time, it just resets which photo shows next.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveImage((i) => (i + 1) % villaImages.length);
+    }, AUTO_SWAP_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <section className="bg-[#DCEEEA] px-6 py-20 sm:px-12 lg:px-20">
@@ -74,8 +99,8 @@ export default function Welcome() {
         <div className="flex flex-col items-center">
           <div className="relative aspect-square w-full max-w-md overflow-hidden rounded-[3rem] rounded-tr-[7rem] rounded-bl-[7rem] border-[10px] border-white shadow-lg">
             <Image
-              src={villaImages[activeImage]}
-              alt="The Nest Bologna"
+              src={villaImages[activeImage].src}
+              alt={villaImages[activeImage].alt}
               fill
               sizes="(min-width: 1024px) 448px, 100vw"
               className="object-cover"

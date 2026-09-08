@@ -21,12 +21,13 @@ export default function RoomPricing() {
         <div>
           <p className="text-sm leading-relaxed text-slate-600">
             A calm, family-run stay in a coastal village between the Negombo lagoon and the sea —
-            around 30 minutes from Bandaranaike International Airport and within easy reach of
+            around 25 minutes from Bandaranaike International Airport and within easy reach of
             Negombo and Colombo.
           </p>
           <p className="mt-4 text-sm leading-relaxed text-slate-600">
             Choose one or more rooms depending on your group size — pick the exact rooms you want
-            when you book below.
+            when you book below. However many rooms you book, you and your group have the entire
+            villa to yourselves — we only ever host one party at a time.
           </p>
           <ul className="mt-4 flex flex-col gap-2">
             {highlights.map((item) => (

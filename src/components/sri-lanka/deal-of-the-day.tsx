@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
@@ -22,10 +22,17 @@ export default function DealOfTheDay() {
   const [active, setActive] = useState(0);
   const [visible, setVisible] = useState(true);
 
+  // Held so the cross-fade timer can be cancelled if the section unmounts
+  // mid-transition, which would otherwise setState on an unmounted component.
+  const fadeTimer = useRef<number | undefined>(undefined);
+
+  useEffect(() => () => window.clearTimeout(fadeTimer.current), []);
+
   const selectTent = (index: number) => {
     if (index === active) return;
     setVisible(false);
-    window.setTimeout(() => {
+    window.clearTimeout(fadeTimer.current);
+    fadeTimer.current = window.setTimeout(() => {
       setActive(index);
       setVisible(true);
     }, 180);

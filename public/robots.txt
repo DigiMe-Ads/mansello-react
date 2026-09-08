@@ -1,0 +1,15 @@
+# https://mansello.com
+User-agent: *
+Allow: /
+
+# Private / transactional areas — no search value, and some contain
+# guest-specific tokens that must never be indexed.
+Disallow: /admin
+Disallow: /booking-info/
+Disallow: /sri-lanka/marketplace/cart
+Disallow: /sri-lanka/marketplace/checkout
+Disallow: /sri-lanka/marketplace/order/
+Disallow: /italy/booking/confirmation
+Disallow: /sri-lanka/booking/confirmation
+
+Sitemap: https://mansello.com/sitemap.xml

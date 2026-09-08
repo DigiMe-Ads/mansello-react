@@ -14,6 +14,7 @@
 // endpoint simply not existing yet on the backend.
 
 import type { ClickEventInput, HeatmapDevice, Site } from "@/lib/api/types";
+import { KNOWN_PAGES } from "@/components/admin/heatmap/known-pages";
 
 const FLUSH_INTERVAL_MS = 5000;
 const MAX_BATCH_SIZE = 50;
@@ -45,6 +46,21 @@ function siteFor(pathname: string): Site | null {
   if (pathname.startsWith("/italy")) return "italy";
   if (pathname.startsWith("/sri-lanka")) return "sri_lanka";
   return null; // homepage, /booking-info/:token, etc. — not part of either site's heatmap
+}
+
+// Paths whose heatmap the admin can actually render. Recording anything else
+// is not just useless — it is unsafe: pathnames on the dynamic routes carry
+// secrets. `/booking-info/<token>` holds the single credential guarding a
+// guest's details and passport uploads, and `/sri-lanka/marketplace/order/<id>`
+// identifies a customer's order. Both would otherwise be posted verbatim to
+// the unauthenticated click-events endpoint and stored in the analytics table.
+const TRACKABLE_PATHS = new Set(KNOWN_PAGES.map((p) => p.path));
+
+function isTrackablePath(pathname: string): boolean {
+  // Tolerate a trailing slash so /italy/ and /italy are the same page.
+  const normalized =
+    pathname.length > 1 && pathname.endsWith("/") ? pathname.slice(0, -1) : pathname;
+  return TRACKABLE_PATHS.has(normalized);
 }
 
 // Best-effort, short, human-glanceable description of what was clicked —
@@ -120,6 +136,7 @@ export function initClickHeatmapTracker() {
 
   const onClick = (e: MouseEvent) => {
     if (window.location.pathname.startsWith("/admin")) return;
+    if (!isTrackablePath(window.location.pathname)) return;
     if (queue.length >= MAX_QUEUE_SIZE) return;
 
     const doc = document.documentElement;

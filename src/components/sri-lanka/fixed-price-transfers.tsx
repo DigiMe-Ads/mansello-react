@@ -15,12 +15,12 @@ const packageIcons: Record<TourPackageIcon, typeof Compass> = {
 
 const transfers = [
   {
-    title: "Airport → Dona's Villa - $29.99",
+    title: "Airport → Dona's Villa",
     description:
       "Meet & greet at arrivals, private air-conditioned vehicle, door-to-door drop-off",
   },
   {
-    title: "Dona's Villa → Airport - $29.99",
+    title: "Dona's Villa → Airport",
     description:
       "Scheduled pick-up from the villa with guaranteed on-time arrival for your flight",
   },
@@ -64,9 +64,14 @@ export default function FixedPriceTransfers() {
         {/* Right: copy */}
         <div>
           <h2 className="text-3xl font-bold sm:text-4xl">
-            <span className="text-[#153C4D]">Flat-Rate</span>{" "}
+            <span className="text-[#153C4D]">Airport</span>{" "}
             <span className="text-[#F5A623]">Transfers</span>
           </h2>
+
+          <p className="mt-3 text-sm leading-relaxed text-slate-500">
+            Tell us how many passengers are travelling and we&apos;ll quote a fair price for the
+            vehicle that fits your group — no surprises on the day.
+          </p>
 
           <div className="mt-6 flex flex-col gap-4">
             {transfers.map((t) => (
@@ -107,7 +112,7 @@ export default function FixedPriceTransfers() {
 
           <p className="mt-4 text-sm leading-relaxed text-slate-500">
             Tell us where you want to go and how many are travelling, and
-            we&apos;ll send you a clear, flat-rate quote - no meters, no
+            we&apos;ll send you a clear quote for your group - no meters, no
             surprises.
           </p>
 
@@ -132,19 +137,24 @@ export default function FixedPriceTransfers() {
             })}
           </div>
 
-          {showForm ? (
-            <div className="mt-6">
-              <TransportRequestForm propertySlug="donas-villa" initialNotes={initialNotes} />
-            </div>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setShowForm(true)}
-              className="mt-6 rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#72A62E]"
-            >
-              Request a Quote
-            </button>
-          )}
+          {/* Fixed anchor for both states, so a link to #transfer-request-form
+              (e.g. a package page's "Enquire About This Package" button)
+              always lands here regardless of whether the form is showing yet. */}
+          <div id="transfer-request-form" className="scroll-mt-24">
+            {showForm ? (
+              <div className="mt-6">
+                <TransportRequestForm propertySlug="donas-villa" initialNotes={initialNotes} />
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowForm(true)}
+                className="mt-6 rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#72A62E]"
+              >
+                Request a Quote
+              </button>
+            )}
+          </div>
         </div>
       </div>
     </section>

@@ -7,6 +7,7 @@ import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
 import { subscribeToNewsletter } from "@/lib/api/leads";
 import { ApiRequestError } from "@/lib/api/errors";
+import { SRI_LANKA_DESTINATIONS } from "@/lib/destinations";
 
 const exploreLinks = [
   { label: "About us", href: "/sri-lanka/about" },
@@ -15,8 +16,6 @@ const exploreLinks = [
   { label: "Marketplace", href: "/sri-lanka/marketplace" },
   { label: "Blogs", href: "/sri-lanka/blog" },
 ];
-// No dedicated destination pages yet — all point to About for now.
-const destinationLinks = ["Kandy", "Ella", "Badulla", "Jaffna"];
 const legalLinks = [
   { label: "Terms & Condition", href: "/sri-lanka/terms" },
   { label: "Privacy Policy", href: "/sri-lanka/privacy" },
@@ -159,7 +158,7 @@ export default function Footer() {
                 />
               </div>
               <p className="mt-4 max-w-[220px] text-sm leading-relaxed text-slate-600">
-                Family-run villa in Pamunugama with flat-rate
+                Family-run villa in Pamunugama with reliable
                 airport transfers and an Italian marketplace.
               </p>
               <div className="mt-4 flex gap-3">
@@ -207,16 +206,16 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Destinations — no dedicated pages yet, so these point to About */}
+            {/* Destinations */}
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">
                 Destinations
               </h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
-                {destinationLinks.map((l) => (
-                  <li key={l}>
-                    <Link href="/sri-lanka/about" className="transition hover:text-[#153C4D]">
-                      {l}
+                {SRI_LANKA_DESTINATIONS.map((d) => (
+                  <li key={d.slug}>
+                    <Link href={`/sri-lanka/destinations/${d.slug}`} className="transition hover:text-[#153C4D]">
+                      {d.name}
                     </Link>
                   </li>
                 ))}

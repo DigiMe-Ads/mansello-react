@@ -1,5 +1,7 @@
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 // Sample/placeholder privacy policy, drafted to match how the site actually
 // handles data (Stripe payments, marketplace delivery details, Airbnb
@@ -16,7 +18,7 @@ const sections: { heading: string; paragraphs: string[] }[] = [
     heading: "2. Data We Collect",
     paragraphs: [
       "Booking details: name, email, phone number, and a valid ID document (type and number) where required.",
-      "Marketplace order details: name, phone number, and delivery address, needed to fulfil a cash-on-delivery order.",
+      "Marketplace order details: name, phone number, and delivery address, needed to fulfil your order.",
       "Payment information: handled directly by Stripe during checkout — we never see or store your full card number.",
       "Anything you send us directly: contact form messages, transport requests, and your email address if you subscribe to our newsletter.",
     ],
@@ -30,7 +32,8 @@ const sections: { heading: string; paragraphs: string[] }[] = [
   {
     heading: "4. Sharing Your Data",
     paragraphs: [
-      "We share booking and payment data with Stripe to process payments, share availability (not personal details) with Airbnb to keep our calendars in sync, and share delivery details with couriers where needed to fulfil a marketplace order. We never sell your personal data to third parties.",
+      "We share booking and payment data with Stripe to process payments, and share delivery details with couriers where needed to fulfil a marketplace order.",
+      "If you book through Airbnb or Booking.com rather than directly with us, those platforms share your booking and guest details with us so we can prepare for your stay, and we share availability with them in turn to keep our calendars in sync and avoid double-bookings. Each platform's own privacy policy governs how they handle your data on their end. We never sell your personal data to third parties.",
     ],
   },
   {
@@ -60,35 +63,38 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 ];
 
 export default function SriLankaPrivacy() {
+  useSeo(PAGE_META.sriLankaPrivacy);
+
   return (
-    <main>
-      <PageHero
-        title="Privacy Policy"
-        backgroundImage="/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg"
-        backgroundAlt="Facade of Dona's Villa in Pamunugama, Sri Lanka"
-        homeHref="/sri-lanka"
-      />
+    <>
+      <main>
+        <PageHero
+          title="Privacy Policy"
+          backgroundImage="/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg"
+          backgroundAlt="Facade of Dona's Villa in Pamunugama, Sri Lanka"
+          homeHref="/sri-lanka"
+        />
 
-      <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            Last updated: August 14, 2026
-          </p>
+        <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Last updated: August 14, 2026
+            </p>
 
-          {sections.map((s) => (
-            <div key={s.heading} className="mt-8 first:mt-0">
-              <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
-              {s.paragraphs.map((p, i) => (
-                <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
-                  {p}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
+            {sections.map((s) => (
+              <div key={s.heading} className="mt-8 first:mt-0">
+                <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
+                {s.paragraphs.map((p, i) => (
+                  <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

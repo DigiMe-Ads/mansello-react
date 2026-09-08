@@ -2,14 +2,41 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <link rel="icon" href="/logo-main.webp" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!-- Defaults for the raw HTML response. Per-route values are set at
+         runtime by src/lib/seo/use-seo.ts; these are what a scraper that does
+         not execute JavaScript will read. -->
     <title>Mansello | Your Home Away From Home</title>
     <meta name="description" content="Two countries. One warm welcome." />
+    <link rel="canonical" href="https://mansello.com/" />
+    <meta name="robots" content="index, follow" />
+
+    <meta property="og:site_name" content="Mansello" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Mansello | Your Home Away From Home" />
+    <meta property="og:description" content="Two countries. One warm welcome." />
+    <meta property="og:url" content="https://mansello.com/" />
+    <meta property="og:image" content="https://mansello.com/images/hero-bg.webp" />
+    <meta property="og:locale" content="en_US" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="Mansello | Your Home Away From Home" />
+    <meta name="twitter:description" content="Two countries. One warm welcome." />
+    <meta name="twitter:image" content="https://mansello.com/images/hero-bg.webp" />
+
+    <link rel="icon" href="/favicon.ico" sizes="any" />
+    <link rel="icon" type="image/webp" href="/logo-main.webp" />
+    <link rel="apple-touch-icon" href="/logo-main.webp" />
+    <meta name="theme-color" content="#153C4D" />
+
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <!-- The first data fetch on most pages goes here; warming the connection
+         early saves a DNS+TLS round trip once React mounts. -->
+    <link rel="preconnect" href="https://mansello-backend-production.up.railway.app" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&family=Kaushan+Script&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Kaushan+Script&display=swap"
       rel="stylesheet"
     />
   </head>

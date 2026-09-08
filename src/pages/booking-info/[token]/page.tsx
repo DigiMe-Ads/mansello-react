@@ -12,6 +12,8 @@ import type {
   GuestInfoAnswers,
   GuestInfoField,
 } from "@/lib/api/types";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PRIVATE_META } from "@/lib/seo/page-meta";
 
 const inputClass =
   "w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-400 focus:border-[#153C4D]";
@@ -155,6 +157,8 @@ export default function BookingInfoPage() {
       setSubmitting(false);
     }
   }
+
+  useSeo(PRIVATE_META.bookingInfo());
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-[#F7F5F0] px-6 py-16">

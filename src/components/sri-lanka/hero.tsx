@@ -44,9 +44,9 @@ export default function SriLankaHero() {
         </div>
 
         <p className="mx-auto mt-6 max-w-lg text-center text-base leading-relaxed text-white/90 sm:text-lg">
-          Stay at Dona&apos;s Villa — your peaceful coastal retreat just 30 
-          minutes from Colombo Airport. Comfortable rooms, home-cooked warmth, 
-          and reliable airport transfers, all in one place.
+          Stay at Dona&apos;s Villa — your peaceful coastal retreat just 25
+          minutes from Colombo Airport. Comfortable rooms and reliable
+          airport transfers, all in one place.
         </p>
 
         <Link

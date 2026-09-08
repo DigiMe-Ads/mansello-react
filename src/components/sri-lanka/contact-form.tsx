@@ -75,12 +75,15 @@ export default function ContactForm() {
   return (
     <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
       <div className="mx-auto max-w-6xl">
-        {/* Map */}
+        {/* Map — Dona's Villa's own pinned location (not just a generic
+            "Pamunugama" area search), from the place's Google Maps listing. */}
         <div className="overflow-hidden rounded-3xl shadow-lg">
           <iframe
-            src="https://www.google.com/maps?q=Pamunugama,Sri+Lanka&output=embed"
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3582.7384948441636!2d79.8408363!3d7.119597499999999!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3ae2f10077833fc9%3A0xb420d60474f5402!2zRG9uYeKAmXMgVmlsbGE!5e1!3m2!1sen!2slk!4v1788754683161!5m2!1sen!2slk"
             className="h-[320px] w-full border-0 sm:h-[380px]"
             loading="lazy"
+            allowFullScreen
+            referrerPolicy="strict-origin-when-cross-origin"
             title="Map showing Dona's Villa in Pamunugama, Sri Lanka"
           />
         </div>

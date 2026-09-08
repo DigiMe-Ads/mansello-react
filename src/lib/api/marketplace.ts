@@ -4,6 +4,7 @@ import type {
   Category,
   CreateCategoryInput,
   CreateOrderInput,
+  CreateOrderResponse,
   CreateProductInput,
   LowStockItem,
   Order,
@@ -56,8 +57,12 @@ export function getProduct(id: string) {
   return apiFetch<Product>(`/api/marketplace/catalog/products/${id}`);
 }
 
+// Returns the created (pending-payment) order alongside a Stripe
+// clientSecret — mirrors createBooking. The checkout page shows a payment
+// form with this before the order is actually confirmed; see
+// BACKEND_CHANGES_MARKETPLACE_PAYMENTS.md.
 export function createOrder(input: CreateOrderInput) {
-  return apiFetch<Order>("/api/marketplace/orders", {
+  return apiFetch<CreateOrderResponse>("/api/marketplace/orders", {
     method: "POST",
     body: JSON.stringify(input),
   });

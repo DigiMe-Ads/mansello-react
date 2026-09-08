@@ -6,7 +6,7 @@ const leftReasons = [
 ];
 
 const rightReasons = [
-  "Airport convenience - 30 minutes from CMB, with door-to-door transfers",
+  "Airport convenience - 25 minutes from CMB, with door-to-door transfers",
   "Two countries, one standard - the same care at our Bologna apartment in Italy",
 ];
 

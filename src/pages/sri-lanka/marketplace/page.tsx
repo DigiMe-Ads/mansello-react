@@ -6,22 +6,28 @@ import DealOfTheDay from "@/components/sri-lanka/deal-of-the-day";
 import BestProducts from "@/components/sri-lanka/best-products";
 import Footer from "@/components/sri-lanka/footer";
 import { MarketplaceProvider } from "@/components/marketplace/marketplace-provider";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 export default function Marketplace() {
+  useSeo(PAGE_META.marketplace);
+
   return (
-    <main>
-      <MarketplaceHero />
-      {/* Shared provider so the featured-categories section, Deal of the
-          Day, and Best Products all show the same catalog data (one fetch)
-          and share the same category filter/selection state. */}
-      <MarketplaceProvider>
-        <MarketplaceCategories />
-        <BrandsTrust />
-        <HowItWorks />
-        <DealOfTheDay />
-        <BestProducts />
-      </MarketplaceProvider>
+    <>
+      <main>
+        <MarketplaceHero />
+        {/* Shared provider so the featured-categories section, Deal of the
+            Day, and Best Products all show the same catalog data (one fetch)
+            and share the same category filter/selection state. */}
+        <MarketplaceProvider>
+          <MarketplaceCategories />
+          <BrandsTrust />
+          <HowItWorks />
+          <DealOfTheDay />
+          <BestProducts />
+        </MarketplaceProvider>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

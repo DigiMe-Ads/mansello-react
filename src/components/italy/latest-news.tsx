@@ -81,7 +81,7 @@ export default function LatestNews() {
                 <Link key={post.id} href={`/italy/blog/${post.slug}`} className="flex items-stretch gap-3">
                   <div className="relative h-auto w-24 shrink-0 overflow-hidden rounded-2xl bg-[#B9DAD2]">
                     {post.coverImageUrl && isRenderableImageSrc(post.coverImageUrl) ? (
-                      <Image src={post.coverImageUrl} alt="" fill sizes="96px" className="object-cover" />
+                      <Image src={post.coverImageUrl} alt={post.title} fill sizes="96px" className="object-cover" />
                     ) : (
                       <div className="flex h-full w-full items-center justify-center">
                         <ImageIcon className="h-6 w-6 text-[#1B4B4F]/40" />
@@ -109,7 +109,7 @@ export default function LatestNews() {
                 {featured.coverImageUrl && isRenderableImageSrc(featured.coverImageUrl) ? (
                   <Image
                     src={featured.coverImageUrl}
-                    alt=""
+                    alt={featured.title}
                     fill
                     sizes="(min-width: 1024px) 400px, 100vw"
                     className="object-cover"

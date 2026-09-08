@@ -7,8 +7,12 @@ import Testimonials from "@/components/sri-lanka/testimonials";
 import Adventure from "@/components/sri-lanka/adventure";
 import LatestNews from "@/components/sri-lanka/latest-news";
 import Footer from "@/components/sri-lanka/footer";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 export default function Home() {
+  useSeo(PAGE_META.sriLankaHome);
+
   return (
     <>
       <main>

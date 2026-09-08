@@ -275,6 +275,10 @@ export interface Order {
   notes: string | null;
   status: OrderStatus;
   paymentMethod: string;
+  // Set once payment is confirmed — mirrors Booking.stripePaymentIntentId.
+  // Optional/absent for a not-yet-updated backend or an order placed before
+  // the marketplace switched from cash-on-delivery to card payment.
+  stripePaymentIntentId?: string | null;
   shippingFee: string;
   subtotal: string;
   total: string;
@@ -291,6 +295,17 @@ export interface CreateOrderInput {
   notes?: string;
   shippingFee: number;
   items: { productId: string; quantity: number }[];
+}
+
+// The marketplace now takes payment up front through the same Sri Lanka
+// Stripe account used for Dona's Villa bookings, mirroring
+// CreateBookingResponse — the order is created in a pending state alongside
+// a PaymentIntent, and only moves to "confirmed" once that payment succeeds.
+// Not in API_DOCUMENTATION.md yet — spec'd in
+// BACKEND_CHANGES_MARKETPLACE_PAYMENTS.md.
+export interface CreateOrderResponse {
+  order: Order;
+  clientSecret: string;
 }
 
 export interface LowStockItem extends StockLevel {
@@ -660,6 +675,46 @@ export interface BookingInfoRequestPublicView {
 
 export interface SubmitGuestInfoInput {
   answers: GuestInfoAnswers;
+}
+
+// --- Testimonials ---
+//
+// Not in API_DOCUMENTATION.md yet — spec'd in
+// BACKEND_CHANGES_TESTIMONIALS.md. Public reads are per-site (each of
+// components/italy/testimonials.tsx and components/sri-lanka/testimonials.tsx
+// only ever renders its own site's reviews) and admin-manageable from a
+// dedicated "Testimonials" tab, same site-tabbed shape as the Blog admin page.
+
+export interface Testimonial {
+  id: string;
+  site: Site;
+  name: string;
+  role: string; // e.g. "Airbnb Guest · 3 nights" — freeform, matches today's hardcoded copy
+  quote: string;
+  rating: number; // 1–5
+  sortOrder: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreateTestimonialInput {
+  site: Site;
+  name: string;
+  role: string;
+  quote: string;
+  rating: number;
+  sortOrder?: number;
+  active?: boolean;
+}
+
+export interface UpdateTestimonialInput {
+  name?: string;
+  role?: string;
+  quote?: string;
+  rating?: number;
+  sortOrder?: number;
+  active?: boolean;
 }
 
 // --- Heatmap ---

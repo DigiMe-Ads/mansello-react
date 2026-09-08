@@ -1,5 +1,7 @@
 import PageHero from "@/components/italy/page-hero";
 import Footer from "@/components/italy/footer";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 // Sample/placeholder terms — written to reflect how the site and booking
 // flow actually work (hold windows, cancellation tiers, city tax, etc.), but
@@ -33,43 +35,37 @@ const sections: { heading: string; paragraphs: string[] }[] = [
     ],
   },
   {
-    heading: "5. Airport Transfers & Transport",
-    paragraphs: [
-      "Flat-rate and custom-quote transport services (e.g. airport pick-up/drop-off) are optional add-ons, arranged separately from your room booking and confirmed directly by our team.",
-    ],
-  },
-  {
-    heading: "6. Payments",
+    heading: "5. Payments",
     paragraphs: [
       "All online payments are processed securely through Stripe. We do not collect or store your full card details on our servers.",
     ],
   },
   {
-    heading: "7. Guest Responsibilities",
+    heading: "6. Guest Responsibilities",
     paragraphs: [
       "Guests are expected to treat the property with care and respect check-in/check-out times, house rules, and neighbours. Guests are responsible for any damage caused to the property during their stay beyond normal wear and tear.",
     ],
   },
   {
-    heading: "8. Limitation of Liability",
+    heading: "7. Limitation of Liability",
     paragraphs: [
       "While we take reasonable care to keep this website and the information on it accurate and up to date, we make no warranties about its completeness and accept no liability for indirect or consequential loss arising from its use.",
     ],
   },
   {
-    heading: "9. Governing Law",
+    heading: "8. Governing Law",
     paragraphs: [
       "These terms are governed by the laws of Italy. Any disputes will be subject to the exclusive jurisdiction of the Italian courts.",
     ],
   },
   {
-    heading: "10. Changes to These Terms",
+    heading: "9. Changes to These Terms",
     paragraphs: [
       "We may update these terms from time to time. Changes take effect once posted on this page; the \"Last updated\" date below reflects the most recent revision.",
     ],
   },
   {
-    heading: "11. Contact Us",
+    heading: "10. Contact Us",
     paragraphs: [
       "Questions about these terms? Reach us at info@mansello.com, by phone at +39 380 348 8663, or by post at Via Alfredo Calzolari 12, 40128 Bologna, Italy.",
     ],
@@ -77,35 +73,38 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 ];
 
 export default function ItalyTerms() {
+  useSeo(PAGE_META.italyTerms);
+
   return (
-    <main>
-      <PageHero
-        title="Terms & Conditions"
-        backgroundImage="/images/italy/nest-bologna/nest-bologna-exterior-1.webp"
-        backgroundAlt="Entrance of The Nest Bologna in Bologna, Italy"
-        homeHref="/italy"
-      />
+    <>
+      <main>
+        <PageHero
+          title="Terms & Conditions"
+          backgroundImage="/images/italy/nest-bologna/nest-bologna-exterior-1.webp"
+          backgroundAlt="Entrance of The Nest Bologna in Bologna, Italy"
+          homeHref="/italy"
+        />
 
-      <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            Last updated: August 14, 2026
-          </p>
+        <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Last updated: August 14, 2026
+            </p>
 
-          {sections.map((s) => (
-            <div key={s.heading} className="mt-8 first:mt-0">
-              <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
-              {s.paragraphs.map((p, i) => (
-                <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
-                  {p}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
+            {sections.map((s) => (
+              <div key={s.heading} className="mt-8 first:mt-0">
+                <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
+                {s.paragraphs.map((p, i) => (
+                  <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

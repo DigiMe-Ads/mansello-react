@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { Suspense, lazy, useEffect } from "react";
 import { Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { CartProvider } from "@/components/marketplace/cart-provider";
 import { initClickHeatmapTracker } from "@/lib/analytics/click-tracker";
@@ -11,9 +11,9 @@ import ItalyAbout from "@/pages/italy/about/page";
 import ItalyAirbnb from "@/pages/italy/airbnb/page";
 import ItalyBlog from "@/pages/italy/blog/page";
 import ItalyBlogPost from "@/pages/italy/blog/[slug]/page";
+import ItalyDestination from "@/pages/italy/destinations/[slug]/page";
 import ItalyBookingConfirmation from "@/pages/italy/booking/confirmation/page";
 import ItalyContact from "@/pages/italy/contact/page";
-import ItalyTransport from "@/pages/italy/transport/page";
 import ItalyTerms from "@/pages/italy/terms/page";
 import ItalyPrivacy from "@/pages/italy/privacy/page";
 
@@ -26,6 +26,7 @@ import SriLankaBookingConfirmation from "@/pages/sri-lanka/booking/confirmation/
 import SriLankaContact from "@/pages/sri-lanka/contact/page";
 import SriLankaTransport from "@/pages/sri-lanka/transport/page";
 import SriLankaTourPackage from "@/pages/sri-lanka/transport/packages/[slug]/page";
+import SriLankaDestination from "@/pages/sri-lanka/destinations/[slug]/page";
 import SriLankaTerms from "@/pages/sri-lanka/terms/page";
 import SriLankaPrivacy from "@/pages/sri-lanka/privacy/page";
 
@@ -37,25 +38,42 @@ import MarketplaceOrder from "@/pages/sri-lanka/marketplace/order/[id]/page";
 import BookingInfo from "@/pages/booking-info/[token]/page";
 
 // --- Admin ------------------------------------------------------------------
-import AdminLogin from "@/pages/admin/login/page";
-import ProtectedAdminLayout from "@/pages/admin/protected-layout";
-import AdminDashboard from "@/pages/admin/(protected)/dashboard/page";
-import AdminVillas from "@/pages/admin/(protected)/villas/page";
-import AdminVillaDetail from "@/pages/admin/(protected)/villas/[propertyId]/page";
-import AdminProducts from "@/pages/admin/(protected)/marketplace/products/page";
-import AdminOrders from "@/pages/admin/(protected)/marketplace/orders/page";
-import AdminLeads from "@/pages/admin/(protected)/leads/page";
-import AdminBlog from "@/pages/admin/(protected)/blog/page";
-import AdminGuestInfoForm from "@/pages/admin/(protected)/settings/guest-info-form/page";
-import AdminUsers from "@/pages/admin/(protected)/users/page";
-import AdminHeatmap from "@/pages/admin/(protected)/heatmap/page";
+// Lazy-loaded, deliberately. These 13 screens are only ever reached by staff,
+// but a static import pulls the whole dashboard — heatmap viewer, rate editor,
+// form builder, user management — into the single entry chunk that every
+// public visitor downloads and parses. Splitting them out keeps that weight
+// off the guest-facing pages, where it was hurting Core Web Vitals.
+const AdminLogin = lazy(() => import("@/pages/admin/login/page"));
+const ProtectedAdminLayout = lazy(() => import("@/pages/admin/protected-layout"));
+const AdminDashboard = lazy(() => import("@/pages/admin/(protected)/dashboard/page"));
+const AdminVillas = lazy(() => import("@/pages/admin/(protected)/villas/page"));
+const AdminVillaDetail = lazy(() => import("@/pages/admin/(protected)/villas/[propertyId]/page"));
+const AdminProducts = lazy(() => import("@/pages/admin/(protected)/marketplace/products/page"));
+const AdminOrders = lazy(() => import("@/pages/admin/(protected)/marketplace/orders/page"));
+const AdminLeads = lazy(() => import("@/pages/admin/(protected)/leads/page"));
+const AdminBlog = lazy(() => import("@/pages/admin/(protected)/blog/page"));
+const AdminTestimonials = lazy(() => import("@/pages/admin/(protected)/testimonials/page"));
+const AdminGuestInfoForm = lazy(() => import("@/pages/admin/(protected)/settings/guest-info-form/page"));
+const AdminUsers = lazy(() => import("@/pages/admin/(protected)/users/page"));
+const AdminHeatmap = lazy(() => import("@/pages/admin/(protected)/heatmap/page"));
 
-// Restore Next's default behaviour of scrolling to the top on navigation.
+
+// Restore Next's default behaviour of scrolling to the top on navigation —
+// except when the destination carries a hash (e.g. a package page's
+// "Enquire About This Package" linking to `#transfer-request-form`), in
+// which case the whole point is to land on that section, not the top.
 function ScrollToTop() {
-  const { pathname } = useLocation();
+  const { pathname, hash } = useLocation();
   useEffect(() => {
+    if (hash) {
+      const target = document.getElementById(hash.slice(1));
+      if (target) {
+        target.scrollIntoView({ behavior: "smooth", block: "start" });
+        return;
+      }
+    }
     window.scrollTo(0, 0);
-  }, [pathname]);
+  }, [pathname, hash]);
   return null;
 }
 
@@ -83,9 +101,9 @@ export default function App() {
         <Route path="/italy/airbnb" element={<ItalyAirbnb />} />
         <Route path="/italy/blog" element={<ItalyBlog />} />
         <Route path="/italy/blog/:slug" element={<ItalyBlogPost />} />
+        <Route path="/italy/destinations/:slug" element={<ItalyDestination />} />
         <Route path="/italy/booking/confirmation" element={<ItalyBookingConfirmation />} />
         <Route path="/italy/contact" element={<ItalyContact />} />
-        <Route path="/italy/transport" element={<ItalyTransport />} />
         <Route path="/italy/terms" element={<ItalyTerms />} />
         <Route path="/italy/privacy" element={<ItalyPrivacy />} />
 
@@ -99,6 +117,7 @@ export default function App() {
         <Route path="/sri-lanka/contact" element={<SriLankaContact />} />
         <Route path="/sri-lanka/transport" element={<SriLankaTransport />} />
         <Route path="/sri-lanka/transport/packages/:slug" element={<SriLankaTourPackage />} />
+        <Route path="/sri-lanka/destinations/:slug" element={<SriLankaDestination />} />
         <Route path="/sri-lanka/terms" element={<SriLankaTerms />} />
         <Route path="/sri-lanka/privacy" element={<SriLankaPrivacy />} />
 
@@ -113,8 +132,21 @@ export default function App() {
 
         {/* Admin */}
         <Route path="/admin" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/login" element={<AdminLogin />} />
-        <Route element={<ProtectedAdminLayout />}>
+        <Route
+          path="/admin/login"
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
+              <AdminLogin />
+            </Suspense>
+          }
+        />
+        <Route
+          element={
+            <Suspense fallback={<div className="min-h-screen bg-[#F7F5F0]" />}>
+              <ProtectedAdminLayout />
+            </Suspense>
+          }
+        >
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/villas" element={<AdminVillas />} />
           <Route path="/admin/villas/:propertyId" element={<AdminVillaDetail />} />
@@ -122,6 +154,7 @@ export default function App() {
           <Route path="/admin/marketplace/orders" element={<AdminOrders />} />
           <Route path="/admin/leads" element={<AdminLeads />} />
           <Route path="/admin/blog" element={<AdminBlog />} />
+          <Route path="/admin/testimonials" element={<AdminTestimonials />} />
           <Route path="/admin/settings/guest-info-form" element={<AdminGuestInfoForm />} />
           <Route path="/admin/users" element={<AdminUsers />} />
           <Route path="/admin/heatmap" element={<AdminHeatmap />} />

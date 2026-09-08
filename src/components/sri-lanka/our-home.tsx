@@ -47,10 +47,10 @@ export default function OurHome() {
 
         <p className="relative mt-6 text-sm leading-relaxed text-slate-500 sm:text-base">
           Dona&apos;s Villa sits in Pamunugama, a peaceful fishing village
-          between the Negombo lagoon and the Indian Ocean, just 30 minutes
+          between the Negombo lagoon and the Indian Ocean, just 25 minutes
           from Bandaranaike International Airport. We welcome travellers
           arriving into Colombo with a quiet coastal retreat and dependable
-          flat-rate airport transfers — so your first and last days on
+          airport transfers — so your first and last days on
           the island are as relaxed as everything in between.
         </p>
 

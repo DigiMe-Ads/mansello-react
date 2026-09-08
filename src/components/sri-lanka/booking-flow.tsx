@@ -36,14 +36,14 @@ const steps = [
     cta: { label: "Book a Stay", href: "/sri-lanka/airbnb", external: false },
   },
   {
-    image: "/images/sri-lanka/airbnb/booking-flow/booking-flow-2.webp",
+    image: "/images/destinations/kandy.webp",
     alt: "Temple complex in the misty hills of Sri Lanka",
     title: "Share Your Details",
     description: "Transfer type, date, flight & passengers.",
     cta: { label: "Request a Transfer", href: "/sri-lanka/transport#transfer-request", external: false },
   },
   {
-    image: "/images/sri-lanka/airbnb/booking-flow/booking-flow-1.webp",
+    image: "/images/destinations/ella.jpg",
     alt: "Traveler with a backpack looking out over a jungle village",
     title: "Get Confirmed",
     description: "Email confirmation, driver details on WhatsApp.",

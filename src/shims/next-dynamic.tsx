@@ -1,4 +1,4 @@
-import { lazy, Suspense, type ComponentType } from "react";
+import { lazy, Suspense, type ComponentType, type JSX } from "react";
 
 // Minimal replacement for `next/dynamic`. The app used it once, to lazy-load
 // the Stripe-powered payment step:

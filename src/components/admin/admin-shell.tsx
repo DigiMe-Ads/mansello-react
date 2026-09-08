@@ -13,6 +13,7 @@ const NAV_ITEMS: { href: string; label: string; roles?: AdminRole[] }[] = [
   { href: "/admin/leads", label: "Leads" },
   { href: "/admin/heatmap", label: "Heatmap", roles: ["super_admin"] },
   { href: "/admin/blog", label: "Blog", roles: ["super_admin"] },
+  { href: "/admin/testimonials", label: "Testimonials", roles: ["super_admin"] },
   { href: "/admin/settings/guest-info-form", label: "Guest Info Form", roles: ["super_admin"] },
   { href: "/admin/users", label: "Admin Users", roles: ["super_admin"] },
 ];

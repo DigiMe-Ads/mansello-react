@@ -1,63 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Quote, Star } from "lucide-react";
+import { getTestimonials } from "@/lib/api/testimonials";
+import type { Testimonial } from "@/lib/api/types";
 
-type Testimonial = {
-  name: string;
-  role: string;
-  quote: string;
-  rating: number;
-};
-
-// Real Airbnb reviews for Dona's Villa (Pamunugama, Sri Lanka).
-const testimonials: Testimonial[] = [
-  {
-    name: "Anuke",
-    role: "Airbnb Guest · 1 night",
-    quote:
-      "This was a serene stay in a beautiful villa all to ourselves. Nilanthi was always responsive. Her cousin, Samantha, is the caretaker and also an excellent chef — we ordered meals through her and they were excellent. The villa is a short walk to the beach where we swam and enjoyed the sunset.",
-    rating: 5,
-  },
-  {
-    name: "Sanowar",
-    role: "Airbnb Guest · 10 nights",
-    quote:
-      "The house feels like home, really comfortable and calm. They have everything for your living. The host is really responsive and helpful — they even provided our extra needs as a complement. Highly recommended this house.",
-    rating: 5,
-  },
-  {
-    name: "Aleksandr",
-    role: "Airbnb Guest · 3 nights",
-    quote:
-      "The villa is very spacious and has a private yard. A lot of beaches are nearby. The church is nearby. People are friendly. Peaceful and quiet place.",
-    rating: 5,
-  },
-  {
-    name: "Ritu",
-    role: "Airbnb Guest · 2 nights",
-    quote:
-      "Quite a peaceful stay! N Akka helped with everything. Very comfortable for solo female travellers too. Beautiful home!",
-    rating: 5,
-  },
-  {
-    name: "Punith",
-    role: "Airbnb Guest · 1 night",
-    quote:
-      "Very good, cosy stay if you're looking around the airport — very near to the beach and the village. Very accessible, with a good number of rooms, kitchen and bathroom. Thank you for hosting us, I would highly recommend this place.",
-    rating: 5,
-  },
-  {
-    name: "Naveen",
-    role: "Airbnb Guest · 1 night",
-    quote:
-      "The place was very neat, clean, and well organized. Everything was as expected and absolutely worth the money. Would definitely recommend!",
-    rating: 5,
-  },
-];
-
+// Reads exclusively from the database now — no hardcoded fallback. If
+// nothing's been added yet in the admin Testimonials tab (or its "Seed
+// Existing Reviews" button hasn't been run), this section simply doesn't
+// render rather than showing stale or placeholder content. See
+// BACKEND_CHANGES_TESTIMONIALS.md.
 export default function Testimonials() {
+  // `null` = still loading (render nothing rather than flash an empty
+  // state); `[]` = loaded, genuinely no active testimonials for this site.
+  const [testimonials, setTestimonials] = useState<Testimonial[] | null>(null);
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    getTestimonials("sri_lanka")
+      .then((result) => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTestimonials(result);
+      })
+      .catch(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTestimonials([]);
+      });
+  }, []);
+
+  if (!testimonials || testimonials.length === 0) return null;
+
   const current = testimonials[active];
 
   const goPrev = () =>
@@ -121,7 +93,7 @@ export default function Testimonials() {
           <div className="flex items-center gap-2">
             {testimonials.map((t, i) => (
               <button
-                key={t.name}
+                key={t.id}
                 type="button"
                 onClick={() => setActive(i)}
                 aria-label={`Show testimonial from ${t.name}`}

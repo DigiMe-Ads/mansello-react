@@ -1,5 +1,7 @@
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 // Sample/placeholder terms — written to reflect how the site and booking
 // flow actually work (hold windows, cancellation tiers, marketplace order
@@ -35,14 +37,14 @@ const sections: { heading: string; paragraphs: string[] }[] = [
   {
     heading: "5. Airport Transfers & Transport",
     paragraphs: [
-      "Flat-rate and custom-quote transport services (e.g. airport pick-up/drop-off) are optional add-ons, arranged separately from your room booking and confirmed directly by our team.",
+      "Transport services (e.g. airport pick-up/drop-off) are optional add-ons, quoted based on your group size and itinerary, arranged separately from your room booking and confirmed directly by our team.",
     ],
   },
   {
     heading: "6. Marketplace Orders",
     paragraphs: [
-      "Marketplace orders are paid by cash on delivery (COD). Placing an order does not immediately reserve stock — items are reserved once our team has confirmed the order by phone.",
-      "Orders move through the stages pending → confirmed → packed → shipped → delivered, and may be cancelled or returned at most stages. Confirmed or later-stage orders that are cancelled or returned are automatically restocked.",
+      "Marketplace orders are paid securely online at checkout, through the same Stripe payment gateway used for villa bookings. An order is only confirmed once payment has been successfully processed.",
+      "Orders move through the stages pending → confirmed → packed → shipped → delivered, and may be cancelled or returned at most stages. Confirmed or later-stage orders that are cancelled or returned are automatically restocked, and any refund due is issued to your original payment method.",
       "Prices, product descriptions, and images are shown in good faith and may be updated without notice; the price and details shown at the time your order is confirmed are what apply to that order.",
     ],
   },
@@ -79,35 +81,38 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 ];
 
 export default function SriLankaTerms() {
+  useSeo(PAGE_META.sriLankaTerms);
+
   return (
-    <main>
-      <PageHero
-        title="Terms & Conditions"
-        backgroundImage="/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg"
-        backgroundAlt="Facade of Dona's Villa in Pamunugama, Sri Lanka"
-        homeHref="/sri-lanka"
-      />
+    <>
+      <main>
+        <PageHero
+          title="Terms & Conditions"
+          backgroundImage="/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg"
+          backgroundAlt="Facade of Dona's Villa in Pamunugama, Sri Lanka"
+          homeHref="/sri-lanka"
+        />
 
-      <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            Last updated: August 14, 2026
-          </p>
+        <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Last updated: August 14, 2026
+            </p>
 
-          {sections.map((s) => (
-            <div key={s.heading} className="mt-8 first:mt-0">
-              <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
-              {s.paragraphs.map((p, i) => (
-                <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
-                  {p}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
+            {sections.map((s) => (
+              <div key={s.heading} className="mt-8 first:mt-0">
+                <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
+                {s.paragraphs.map((p, i) => (
+                  <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

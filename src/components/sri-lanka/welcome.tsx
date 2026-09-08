@@ -1,8 +1,11 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ReservationWidget } from "@/components/booking/reservation-widget";
+
+// How long each photo stays up before auto-advancing to the next one.
+const AUTO_SWAP_INTERVAL_MS = 5000;
 
 const villaImages = [
   {
@@ -24,14 +27,23 @@ const villaImages = [
 ];
 
 const highlights = [
-  "Rooms for 1–6 guests",
-  "30 minutes from Colombo Airport (CMB)",
+  "Rooms for 1–8 guests",
+  "25 minutes from Colombo Airport (CMB)",
   "Airport pick-up and drop-off available",
   "Air-conditioned rooms",
 ];
 
 export default function Welcome() {
   const [activeImage, setActiveImage] = useState(0);
+
+  // Auto-advance through the photos, same as clicking the dots — clicking a
+  // dot still works at any time, it just resets which photo shows next.
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setActiveImage((i) => (i + 1) % villaImages.length);
+    }, AUTO_SWAP_INTERVAL_MS);
+    return () => clearInterval(timer);
+  }, []);
 
   return (
     <section className="bg-[#DCEEEA] px-6 py-20 sm:px-12 lg:px-20">
@@ -49,7 +61,7 @@ export default function Welcome() {
           </p>
 
           <p className="mt-4 text-justify text-sm leading-relaxed text-slate-600 sm:text-base">
-            Wake up to birdsong and reach Bandaranaike International Airport in around 30 minutes —
+            Wake up to birdsong and reach Bandaranaike International Airport in around 25 minutes —
             perfect for your first or last night on the island, or as a relaxed base near Colombo and Negombo.
           </p>
 

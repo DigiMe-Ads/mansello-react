@@ -1,5 +1,7 @@
 import PageHero from "@/components/italy/page-hero";
 import Footer from "@/components/italy/footer";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PAGE_META } from "@/lib/seo/page-meta";
 
 // Sample/placeholder privacy policy, drafted to match how the site actually
 // handles data (Stripe payments, guest ID capture, Airbnb calendar sync,
@@ -65,35 +67,38 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 ];
 
 export default function ItalyPrivacy() {
+  useSeo(PAGE_META.italyPrivacy);
+
   return (
-    <main>
-      <PageHero
-        title="Privacy Policy"
-        backgroundImage="/images/italy/nest-bologna/nest-bologna-exterior-1.webp"
-        backgroundAlt="Entrance of The Nest Bologna in Bologna, Italy"
-        homeHref="/italy"
-      />
+    <>
+      <main>
+        <PageHero
+          title="Privacy Policy"
+          backgroundImage="/images/italy/nest-bologna/nest-bologna-exterior-1.webp"
+          backgroundAlt="Entrance of The Nest Bologna in Bologna, Italy"
+          homeHref="/italy"
+        />
 
-      <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
-        <div className="mx-auto max-w-3xl">
-          <p className="text-xs uppercase tracking-wide text-slate-400">
-            Last updated: August 14, 2026
-          </p>
+        <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
+          <div className="mx-auto max-w-3xl">
+            <p className="text-xs uppercase tracking-wide text-slate-400">
+              Last updated: August 14, 2026
+            </p>
 
-          {sections.map((s) => (
-            <div key={s.heading} className="mt-8 first:mt-0">
-              <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
-              {s.paragraphs.map((p, i) => (
-                <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
-                  {p}
-                </p>
-              ))}
-            </div>
-          ))}
-        </div>
-      </section>
-
+            {sections.map((s) => (
+              <div key={s.heading} className="mt-8 first:mt-0">
+                <h2 className="text-xl font-bold text-[#153C4D]">{s.heading}</h2>
+                {s.paragraphs.map((p, i) => (
+                  <p key={i} className="mt-3 text-sm leading-relaxed text-slate-600">
+                    {p}
+                  </p>
+                ))}
+              </div>
+            ))}
+          </div>
+        </section>
+      </main>
       <Footer />
-    </main>
+    </>
   );
 }

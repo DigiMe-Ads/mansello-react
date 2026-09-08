@@ -18,8 +18,21 @@ export function computeShippingFee(rates: ShippingRate[], totalWeightKg: number)
   const band = sorted.find((r) => roundedKg >= r.fromKg && roundedKg <= r.toKg);
   if (band) return roundedKg * Number(band.pricePerKg);
 
-  const top = sorted[sorted.length - 1];
+  // Pick the top band by the highest ceiling, not by position: `sorted` is
+  // ordered by fromKg, so with overlapping bands the last entry is the one
+  // that starts highest, which is not necessarily the one that ends highest.
+  const top = sorted.reduce((a, b) => (b.toKg > a.toKg ? b : a));
   if (roundedKg > top.toKg) return roundedKg * Number(top.pricePerKg);
+
+  // No band matched but the weight is within the configured range, so it fell
+  // into a gap between bands (e.g. bands of 1–3kg and 6–10kg, with a 4kg
+  // order). Charge the nearest band at or below the weight — falling back to
+  // the lowest rate here would systematically undercharge heavier orders.
+  const below = sorted.filter((r) => r.toKg < roundedKg);
+  if (below.length > 0) {
+    const nearest = below.reduce((a, b) => (b.toKg > a.toKg ? b : a));
+    return roundedKg * Number(nearest.pricePerKg);
+  }
 
   // Weight falls below the lowest configured band (e.g. rates start at 2kg) —
   // fall back to the lowest band's rate rather than charging nothing.

@@ -68,7 +68,10 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
 
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
 
-      {booking && Number(booking.cityTax ?? 0) > 0 && (
+      {/* Both fields are optional on older bookings made before the price
+          breakdown existed, and both are rendered below — so both must be
+          present, or formatMoney(undefined) renders a literal "NaN". */}
+      {booking && booking.accommodationPrice != null && Number(booking.cityTax ?? 0) > 0 && (
         <div className="mt-4 rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
           <div className="flex items-center justify-between">
             <span>Accommodation</span>

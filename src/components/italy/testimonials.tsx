@@ -1,48 +1,35 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Quote, Star } from "lucide-react";
+import { getTestimonials } from "@/lib/api/testimonials";
+import type { Testimonial } from "@/lib/api/types";
 
-type Testimonial = {
-  name: string;
-  role: string;
-  quote: string;
-  rating: number;
-};
-
-// Real guest reviews for The Nest Bologna (Airbnb + Booking.com).
-const testimonials: Testimonial[] = [
-  {
-    name: "Sanjay",
-    role: "Booking.com Guest, Germany",
-    quote:
-      "I would recommend this place to everyone, especially those coming to attend fairs, due to proximity. The property had everything one can expect and more — a large approx. 60″ TV, a fully functional kitchen with cutlery, two ACs, easy-to-connect WiFi, and a bath tub in addition to a shower. It made my stay comfortable for a very decent price. I would definitely book this again!",
-    rating: 5,
-  },
-  {
-    name: "Gaia",
-    role: "Airbnb Guest · 1 night",
-    quote:
-      "I stayed at this accommodation for one night and was extremely satisfied. The house was cosy, clean and equipped with everything you need for a comfortable stay. The hosts were always kind and helpful.",
-    rating: 5,
-  },
-  {
-    name: "Kelaure Breldy Pavel",
-    role: "Airbnb Guest · 1 night",
-    quote:
-      "Beautiful apartment in a quiet area, equipped with everything you need. Exactly as described. Don and his parents were very welcoming and kind. Good value for money. It was like being at home. Highly recommended.",
-    rating: 5,
-  },
-  {
-    name: "Mylie",
-    role: "Airbnb Guest · 1 night",
-    quote: "Super big nice place with air con and all you need.",
-    rating: 5,
-  },
-];
-
+// Reads exclusively from the database now — no hardcoded fallback. If
+// nothing's been added yet in the admin Testimonials tab (or its "Seed
+// Existing Reviews" button hasn't been run), this section simply doesn't
+// render rather than showing stale or placeholder content. See
+// BACKEND_CHANGES_TESTIMONIALS.md.
 export default function Testimonials() {
+  // `null` = still loading (render nothing rather than flash an empty
+  // state); `[]` = loaded, genuinely no active testimonials for this site.
+  const [testimonials, setTestimonials] = useState<Testimonial[] | null>(null);
   const [active, setActive] = useState(0);
+
+  useEffect(() => {
+    getTestimonials("italy")
+      .then((result) => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTestimonials(result);
+      })
+      .catch(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setTestimonials([]);
+      });
+  }, []);
+
+  if (!testimonials || testimonials.length === 0) return null;
+
   const current = testimonials[active];
 
   const goPrev = () =>
@@ -106,7 +93,7 @@ export default function Testimonials() {
           <div className="flex items-center gap-2">
             {testimonials.map((t, i) => (
               <button
-                key={t.name}
+                key={t.id}
                 type="button"
                 onClick={() => setActive(i)}
                 aria-label={`Show testimonial from ${t.name}`}

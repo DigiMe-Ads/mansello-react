@@ -4,8 +4,12 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AdminAuthProvider, useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ApiRequestError } from "@/lib/api/errors";
+import { useSeo } from "@/lib/seo/use-seo";
+import { PRIVATE_META } from "@/lib/seo/page-meta";
 
 export default function AdminLoginPage() {
+  useSeo(PRIVATE_META.admin("Sign in"));
+
   return (
     <AdminAuthProvider>
       <LoginForm />

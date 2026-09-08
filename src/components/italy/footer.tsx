@@ -7,15 +7,13 @@ import type { SVGProps } from "react";
 import { Home, Mail, Phone, Search } from "lucide-react";
 import { subscribeToNewsletter } from "@/lib/api/leads";
 import { ApiRequestError } from "@/lib/api/errors";
+import { ITALY_DESTINATIONS } from "@/lib/destinations";
 
 const exploreLinks = [
   { label: "About us", href: "/italy/about" },
   { label: "Apartment", href: "/italy/airbnb" },
-  // { label: "Transport", href: "/italy/transport" },
   { label: "News", href: "/italy/blog" },
 ];
-// No dedicated destination pages yet — all point to About for now.
-const destinationLinks = ["Modena", "Ferrara", "Florence", "Venice", "Rome", "Naples"];
 const legalLinks = [
   { label: "Terms & Condition", href: "/italy/terms" },
   { label: "Privacy Policy", href: "/italy/privacy" },
@@ -208,16 +206,16 @@ export default function Footer() {
               </ul>
             </div>
 
-            {/* Destinations — no dedicated pages yet, so these point to About */}
+            {/* Destinations */}
             <div>
               <h3 className="text-lg font-bold text-[#153C4D]">
                 Destinations
               </h3>
               <ul className="mt-4 flex flex-col gap-3 text-sm text-slate-600">
-                {destinationLinks.map((l) => (
-                  <li key={l}>
-                    <Link href="/italy/about" className="transition hover:text-[#153C4D]">
-                      {l}
+                {ITALY_DESTINATIONS.map((d) => (
+                  <li key={d.slug}>
+                    <Link href={`/italy/destinations/${d.slug}`} className="transition hover:text-[#153C4D]">
+                      {d.name}
                     </Link>
                   </li>
                 ))}
