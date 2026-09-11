@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
-import { ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
+import { Check, ChevronDown, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePropertyBooking } from "./booking-provider";
 import { GuestDetailsForm } from "./guest-details-form";
 import { buildMonthGrid, formatDisplayDate, nextMonth, todayKey, type MonthGridData } from "@/lib/date";
@@ -140,6 +140,9 @@ export function BookingCalendarView({
     setGuestComposition,
     toggleRoom,
     goToDetails,
+    transportPrice,
+    wantsTransport,
+    setWantsTransport,
   } = usePropertyBooking();
 
   const [monthOffset, setMonthOffset] = useState(0);
@@ -181,6 +184,10 @@ export function BookingCalendarView({
 
   const nights = checkIn && checkOut ? nightsBetween(checkIn, checkOut) : 0;
   const rateOverrides = property?.rateOverrides ?? [];
+  // Only charge for a transfer the guest actually ticked, and only when this
+  // property has a rate for their party size.
+  const appliedTransportPrice = wantsTransport && transportPrice != null ? transportPrice : 0;
+
   const stay =
     property && checkIn && checkOut
       ? hasRooms
@@ -193,7 +200,8 @@ export function BookingCalendarView({
             property,
             childrenUnder14,
             rateOverrides,
-            offers
+            offers,
+            appliedTransportPrice
           )
         : computeStayBreakdown(
             property.pricingTiers,
@@ -204,7 +212,8 @@ export function BookingCalendarView({
             property,
             childrenUnder14,
             rateOverrides,
-            offers
+            offers,
+            appliedTransportPrice
           )
       : null;
   const minNightsOk = !property || nights === 0 || nights >= property.minNights;
@@ -294,6 +303,13 @@ export function BookingCalendarView({
                     {stay.nights} night{stay.nights > 1 ? "s" : ""} · {formatMoney(stay.pricePerNight, property.currency)}
                     /night
                   </p>
+                  {/* Itemised here too, so the headline total above is never
+                      an unexplained jump when the add-on is ticked. */}
+                  {stay.transportPrice > 0 && (
+                    <p className="mt-1 text-right text-xs text-slate-500">
+                      Includes airport transfer: {formatMoney(stay.transportPrice, property.currency)}
+                    </p>
+                  )}
                   {property.cityTaxEnabled && (
                     <div className="mt-2 text-right text-xs text-slate-500">
                       <p>Accommodation: {formatMoney(stay.accommodationPrice, property.currency)}</p>
@@ -504,6 +520,46 @@ export function BookingCalendarView({
                       {selectedCapacity} — pick enough rooms for {guests} guests.
                     </p>
                   )}
+                </div>
+              )}
+
+              {/* Airport transfer, priced up front. This used to be buried in
+                  the guest-details step, so the first time anyone saw the cost
+                  was at payment. */}
+              {transportPrice !== null && (
+                <div className="mt-4">
+                  <p className="text-xs font-medium text-slate-400">Add-ons</p>
+                  <button
+                    type="button"
+                    onClick={() => setWantsTransport(!wantsTransport)}
+                    aria-pressed={wantsTransport}
+                    className={`mt-2 flex w-full items-center gap-3 rounded-2xl border p-3 text-left transition ${
+                      wantsTransport
+                        ? "border-[#8DC63F] bg-[#8DC63F]/5"
+                        : "border-slate-200 hover:border-slate-300"
+                    }`}
+                  >
+                    <span
+                      className={`grid h-5 w-5 shrink-0 place-items-center rounded-md border ${
+                        wantsTransport ? "border-[#8DC63F] bg-[#8DC63F] text-white" : "border-slate-300"
+                      }`}
+                      aria-hidden="true"
+                    >
+                      {wantsTransport && <Check size={14} strokeWidth={3} />}
+                    </span>
+                    <span className="flex-1">
+                      <span className="block text-sm font-semibold text-[#153C4D]">Airport transfer</span>
+                      <span className="block text-xs text-slate-500">
+                        Private pick-up for {guests} guest{guests === 1 ? "" : "s"} · one-off charge
+                      </span>
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-sm font-semibold text-[#153C4D]">
+                        {formatMoney(transportPrice, property.currency)}
+                      </span>
+                      <span className="block text-[10px] text-slate-400">total</span>
+                    </span>
+                  </button>
                 </div>
               )}
 

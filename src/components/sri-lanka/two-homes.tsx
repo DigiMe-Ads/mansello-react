@@ -1,5 +1,8 @@
+"use client";
+
 import Image from "next/image";
 import { Signpost, Footprints } from "lucide-react";
+import { useContent } from "@/components/content-provider";
 
 const features = [
   {
@@ -17,6 +20,8 @@ const features = [
 ];
 
 export default function TwoHomes() {
+  const { c } = useContent();
+
   return (
     <section className="bg-white px-6 py-20 sm:px-12 lg:px-20">
       <div className="mx-auto grid max-w-6xl items-center gap-16 lg:grid-cols-[380px_1fr]">
@@ -36,7 +41,7 @@ export default function TwoHomes() {
 
           <div className="absolute right-0 top-0 h-32 w-32 overflow-hidden rounded-full border-[6px] border-white shadow-lg">
             <Image
-              src="/images/sri-lanka/about/homes/villa-living-room.webp"
+              src={c("sri_lanka.villaPhotos.storyImage1")}
               alt="Living room at Dona's Villa"
               fill
               sizes="128px"
@@ -46,7 +51,7 @@ export default function TwoHomes() {
 
           <div className="absolute bottom-8 right-0 h-56 w-56 overflow-hidden rounded-full border-[6px] border-[#DCEEEA] shadow-xl">
             <Image
-              src="/images/sri-lanka/about/homes/villa-garden-day.jpeg"
+              src={c("sri_lanka.villaPhotos.storyImage2")}
               alt="Garden at Dona's Villa"
               fill
               sizes="224px"

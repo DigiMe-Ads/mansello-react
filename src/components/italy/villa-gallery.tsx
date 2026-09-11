@@ -1,40 +1,26 @@
+"use client";
+
 import Image from "next/image";
 import { Plane } from "lucide-react";
-
-const gallery = [
-  [
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
-      alt: "Living room at The Nest Bologna",
-    },
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
-      alt: "Sleeping area at The Nest Bologna",
-    },
-  ],
-  [
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-kitchen-bright.jpeg",
-      alt: "Kitchen at The Nest Bologna",
-    },
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-courtyard-entrance.jpeg",
-      alt: "Entrance of The Nest Bologna",
-    },
-  ],
-  [
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-living-room-chandelier.jpeg",
-      alt: "Living room seating area at The Nest Bologna",
-    },
-    {
-      src: "/images/italy/nest-bologna/nest-bologna-bathroom-1.webp",
-      alt: "Bathroom at The Nest Bologna",
-    },
-  ],
-];
+import { useContent } from "@/components/content-provider";
 
 export default function VillaGallery() {
+  const { c } = useContent();
+  const gallery = [
+    [
+      { src: c("italy.villaPhotos.galleryImage1"), alt: "Living room at The Nest Bologna" },
+      { src: c("italy.villaPhotos.galleryImage2"), alt: "Sleeping area at The Nest Bologna" },
+    ],
+    [
+      { src: c("italy.villaPhotos.galleryImage3"), alt: "Kitchen at The Nest Bologna" },
+      { src: c("italy.villaPhotos.galleryImage4"), alt: "Entrance of The Nest Bologna" },
+    ],
+    [
+      { src: c("italy.villaPhotos.galleryImage5"), alt: "Living room seating area at The Nest Bologna" },
+      { src: c("italy.villaPhotos.galleryImage6"), alt: "Bathroom at The Nest Bologna" },
+    ],
+  ];
+
   return (
     <section className="relative overflow-hidden bg-[#DCEEEA] px-6 py-20 sm:px-12 lg:px-20">
       {/* Pink balloon, peeking in from the left edge */}

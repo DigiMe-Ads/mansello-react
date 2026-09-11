@@ -49,22 +49,36 @@ function LoginForm() {
         {error && <p className="mt-4 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
 
         <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
-          <input
-            type="email"
-            required
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-500 focus:border-[#153C4D]"
-          />
-          <input
-            type="password"
-            required
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-500 focus:border-[#153C4D]"
-          />
+          <div>
+            <label htmlFor="admin-login-email" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+              Email
+            </label>
+            <input
+              id="admin-login-email"
+              name="email"
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-500 focus:border-[#153C4D]"
+            />
+          </div>
+          <div>
+            <label htmlFor="admin-login-password" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+              Password
+            </label>
+            <input
+              id="admin-login-password"
+              name="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="w-full rounded-full border border-slate-300 bg-white px-5 py-3 text-sm text-slate-800 outline-none placeholder:text-slate-500 focus:border-[#153C4D]"
+            />
+          </div>
           <button
             type="submit"
             disabled={submitting}

@@ -161,7 +161,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
       {tab === "Rooms" && roomModel && (
         <VillaRoomsTab propertyId={property.id} currency={property.currency} onChanged={loadRooms} />
       )}
-      {tab === "Transport" && <VillaTransportTab property={property} />}
+      {tab === "Transport" && <VillaTransportTab property={property} onUpdated={load} />}
       {tab === "Offers" && <VillaOffersTab propertyId={property.id} />}
       {tab === "Settings" && <VillaSettingsTab property={property} onUpdated={load} />}
     </div>

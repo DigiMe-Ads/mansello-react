@@ -2,11 +2,12 @@
 
 import { useState } from "react";
 import { usePropertyBooking } from "./booking-provider";
-import type { TransportType } from "@/lib/api/types";
 import { formatMoney } from "@/lib/currency";
 
+const labelClass = "mb-1 block pl-1 text-xs font-semibold text-slate-500";
+
 export function GuestDetailsForm({ showTransport = true }: { showTransport?: boolean }) {
-  const { submitGuestDetails, submitting, submitError, fieldErrors, backToSelect, checkIn, transportPrice, property, guests } =
+  const { submitGuestDetails, submitting, submitError, fieldErrors, backToSelect, checkIn, transportPrice, property, wantsTransport } =
     usePropertyBooking();
   const [guestName, setGuestName] = useState("");
   const [guestEmail, setGuestEmail] = useState("");
@@ -14,8 +15,6 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
   const [guestIdDocumentType, setGuestIdDocumentType] = useState("");
   const [guestIdDocumentNumber, setGuestIdDocumentNumber] = useState("");
 
-  const [wantsTransport, setWantsTransport] = useState(false);
-  const [transportType, setTransportType] = useState<TransportType>("fixed_price");
   const [transportDate, setTransportDate] = useState(checkIn ?? "");
   const [transportFlightNumber, setTransportFlightNumber] = useState("");
   const [transportNotes, setTransportNotes] = useState("");
@@ -28,8 +27,6 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
       guestPhone,
       guestIdDocumentType,
       guestIdDocumentNumber,
-      wantsTransport,
-      transportType,
       transportDate: transportDate || undefined,
       transportFlightNumber,
       transportNotes,
@@ -53,10 +50,15 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
 
       <form onSubmit={handleSubmit} className="mt-4 flex flex-col gap-3">
         <div>
+          <label htmlFor="guest-name" className={labelClass}>
+            Full name
+          </label>
           <input
+            id="guest-name"
+            name="guestName"
             type="text"
             required
-            placeholder="Full name"
+            autoComplete="name"
             value={guestName}
             onChange={(e) => setGuestName(e.target.value)}
             className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -64,10 +66,15 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
           {fieldErrors.guestName && <p className="mt-1 pl-2 text-xs text-red-600">{fieldErrors.guestName}</p>}
         </div>
         <div>
+          <label htmlFor="guest-email" className={labelClass}>
+            Email address
+          </label>
           <input
+            id="guest-email"
+            name="guestEmail"
             type="email"
             required
-            placeholder="Email address"
+            autoComplete="email"
             value={guestEmail}
             onChange={(e) => setGuestEmail(e.target.value)}
             className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -75,10 +82,15 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
           {fieldErrors.guestEmail && <p className="mt-1 pl-2 text-xs text-red-600">{fieldErrors.guestEmail}</p>}
         </div>
         <div>
+          <label htmlFor="guest-phone" className={labelClass}>
+            Phone number
+          </label>
           <input
+            id="guest-phone"
+            name="guestPhone"
             type="tel"
             required
-            placeholder="Phone number"
+            autoComplete="tel"
             value={guestPhone}
             onChange={(e) => setGuestPhone(e.target.value)}
             className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -86,81 +98,93 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
           {fieldErrors.guestPhone && <p className="mt-1 pl-2 text-xs text-red-600">{fieldErrors.guestPhone}</p>}
         </div>
         <div className="grid grid-cols-2 gap-3">
-          <select
-            value={guestIdDocumentType}
-            onChange={(e) => setGuestIdDocumentType(e.target.value)}
-            className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-600 outline-none"
-          >
-            <option value="">ID type (optional)</option>
-            <option value="passport">Passport</option>
-            <option value="national_id">National ID</option>
-          </select>
-          <input
-            type="text"
-            placeholder="ID number (optional)"
-            value={guestIdDocumentNumber}
-            onChange={(e) => setGuestIdDocumentNumber(e.target.value)}
-            className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-          />
+          <div>
+            <label htmlFor="guest-id-type" className={labelClass}>
+              ID type <span className="font-normal text-slate-400">(optional)</span>
+            </label>
+            <select
+              id="guest-id-type"
+              name="guestIdDocumentType"
+              value={guestIdDocumentType}
+              onChange={(e) => setGuestIdDocumentType(e.target.value)}
+              className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-600 outline-none"
+            >
+              <option value="">Select ID type</option>
+              <option value="passport">Passport</option>
+              <option value="national_id">National ID</option>
+            </select>
+          </div>
+          <div>
+            <label htmlFor="guest-id-number" className={labelClass}>
+              ID number <span className="font-normal text-slate-400">(optional)</span>
+            </label>
+            <input
+              id="guest-id-number"
+              name="guestIdDocumentNumber"
+              type="text"
+              value={guestIdDocumentNumber}
+              onChange={(e) => setGuestIdDocumentNumber(e.target.value)}
+              className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+            />
+          </div>
         </div>
 
         {showTransport && (
           <>
-            <label className="mt-1 flex items-center gap-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={wantsTransport}
-                onChange={(e) => setWantsTransport(e.target.checked)}
-              />
-              <span className="flex-1">Add an airport transfer?</span>
-              {/* Only priced when the property has a rate for this party
-                  size; otherwise it stays the arrange-it-later enquiry. */}
-              {transportPrice !== null && property && (
-                <span className="font-semibold text-[#153C4D]">
-                  +{formatMoney(transportPrice, property.currency)}
-                </span>
-              )}
-            </label>
-
             {wantsTransport && (
               <div className="rounded-2xl border border-slate-200 p-4">
                 <div className="grid grid-cols-2 gap-3">
-                  <select
-                    value={transportType}
-                    onChange={(e) => setTransportType(e.target.value as TransportType)}
-                    className="col-span-2 rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
-                  >
-                    <option value="fixed_price">Flat-Rate Transfer</option>
-                    <option value="custom_quote">Custom Quote</option>
-                  </select>
-                  <input
-                    type="date"
-                    value={transportDate}
-                    onChange={(e) => setTransportDate(e.target.value)}
-                    className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
-                  />
-                  <input
-                    type="text"
-                    placeholder="Flight number (optional)"
-                    value={transportFlightNumber}
-                    onChange={(e) => setTransportFlightNumber(e.target.value)}
-                    className="rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                  />
-                  <textarea
-                    placeholder="Notes (optional) — e.g. arrival & departure details"
-                    rows={2}
-                    value={transportNotes}
-                    onChange={(e) => setTransportNotes(e.target.value)}
-                    className="col-span-2 resize-none rounded-2xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                  />
+                  <p className="col-span-2 text-sm font-semibold text-[#153C4D]">
+                    Airport transfer
+                    {transportPrice !== null && property && (
+                      <span className="ml-2 font-normal text-slate-500">
+                        {formatMoney(transportPrice, property.currency)}, already included in your total
+                      </span>
+                    )}
+                  </p>
+                  <div>
+                    <label htmlFor="transport-add-on-date" className={labelClass}>
+                      Pick-up date
+                    </label>
+                    <input
+                      id="transport-add-on-date"
+                      name="transportDate"
+                      type="date"
+                      value={transportDate}
+                      onChange={(e) => setTransportDate(e.target.value)}
+                      className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="transport-add-on-flight" className={labelClass}>
+                      Flight number <span className="font-normal text-slate-400">(optional)</span>
+                    </label>
+                    <input
+                      id="transport-add-on-flight"
+                      name="transportFlightNumber"
+                      type="text"
+                      value={transportFlightNumber}
+                      onChange={(e) => setTransportFlightNumber(e.target.value)}
+                      className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <label htmlFor="transport-add-on-notes" className={labelClass}>
+                      Notes <span className="font-normal text-slate-400">(optional) — e.g. arrival &amp; departure details</span>
+                    </label>
+                    <textarea
+                      id="transport-add-on-notes"
+                      name="transportNotes"
+                      rows={2}
+                      value={transportNotes}
+                      onChange={(e) => setTransportNotes(e.target.value)}
+                      className="w-full resize-none rounded-2xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                    />
+                  </div>
                 </div>
                 <p className="mt-2 text-xs text-slate-400">
-                  {transportPrice !== null && property ? (
-                    <>
-                      {formatMoney(transportPrice, property.currency)} for {guests} guest
-                      {guests === 1 ? "" : "s"}, added to your total below and charged with your booking.
-                      We&apos;ll confirm the pick-up details by email.
-                    </>
+                  {transportPrice !== null ? (
+                    <>We&apos;ll confirm your pick-up details by email before you travel.</>
                   ) : (
                     <>
                       We&apos;ll reach out to confirm your transfer separately — passenger count is taken from

@@ -136,10 +136,15 @@ export default function CheckoutPage() {
                 {submitError && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{submitError}</p>}
 
                 <div>
+                  <label htmlFor="checkout-name" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+                    Full name
+                  </label>
                   <input
+                    id="checkout-name"
+                    name="customerName"
                     type="text"
                     required
-                    placeholder="Full name"
+                    autoComplete="name"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
                     className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -147,10 +152,15 @@ export default function CheckoutPage() {
                   {fieldErrors.customerName && <p className="mt-1 pl-2 text-xs text-red-600">{fieldErrors.customerName}</p>}
                 </div>
                 <div>
+                  <label htmlFor="checkout-phone" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+                    Phone number
+                  </label>
                   <input
+                    id="checkout-phone"
+                    name="customerPhone"
                     type="tel"
                     required
-                    placeholder="Phone number"
+                    autoComplete="tel"
                     value={customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value)}
                     className="w-full rounded-full bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -160,10 +170,15 @@ export default function CheckoutPage() {
                   )}
                 </div>
                 <div>
+                  <label htmlFor="checkout-address" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+                    Delivery address
+                  </label>
                   <textarea
+                    id="checkout-address"
+                    name="deliveryAddress"
                     required
-                    placeholder="Delivery address"
                     rows={3}
+                    autoComplete="street-address"
                     value={deliveryAddress}
                     onChange={(e) => setDeliveryAddress(e.target.value)}
                     className="w-full resize-none rounded-3xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
@@ -172,13 +187,19 @@ export default function CheckoutPage() {
                     <p className="mt-1 pl-2 text-xs text-red-600">{fieldErrors.deliveryAddress}</p>
                   )}
                 </div>
-                <textarea
-                  placeholder="Notes (optional)"
-                  rows={2}
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  className="w-full resize-none rounded-3xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
-                />
+                <div>
+                  <label htmlFor="checkout-notes" className="mb-1 block pl-2 text-xs font-semibold text-slate-500">
+                    Notes <span className="font-normal text-slate-400">(optional)</span>
+                  </label>
+                  <textarea
+                    id="checkout-notes"
+                    name="notes"
+                    rows={2}
+                    value={notes}
+                    onChange={(e) => setNotes(e.target.value)}
+                    className="w-full resize-none rounded-3xl bg-[#F7F5F0] px-5 py-3 text-sm text-slate-700 outline-none placeholder:text-slate-400"
+                  />
+                </div>
 
                 <button
                   type="submit"

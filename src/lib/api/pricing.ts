@@ -315,8 +315,21 @@ export function resolveTransportPrice(
   rates: TransportRate[] | undefined,
   guestCount: number
 ): number | null {
-  const match = rates?.find((r) => r.guestCount === guestCount && r.active);
+  // A row priced 0 is an unconfigured default, not a free transfer — offering
+  // "Airport transfer $0.00" would be worse than not offering it.
+  const match = rates?.find((r) => r.guestCount === guestCount && r.active && Number(r.price) > 0);
   return match ? Number(match.price) : null;
+}
+
+/**
+ * Whether a rate table is actually configured. The endpoint returns all eight
+ * guest-count rows once the table exists, so an untouched property comes back
+ * as eight rows of `{ price: 0, active: false }` — non-empty, but useless.
+ * Callers use this to decide whether to fall back, since checking array length
+ * alone would accept that placeholder table and silently hide the add-on.
+ */
+export function hasUsableTransportRates(rates: TransportRate[] | undefined | null): boolean {
+  return !!rates?.some((r) => r.active && Number(r.price) > 0);
 }
 
 export function resolveNightlyPriceForRoom(room: Room, overrides: RateOverride[], dateKey: string): number {

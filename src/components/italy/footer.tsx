@@ -116,9 +116,15 @@ export default function Footer() {
             onSubmit={handleSubscribe}
             className="flex w-full items-center justify-between gap-2 rounded-full bg-black py-1.5 pl-6 pr-1.5 sm:w-auto sm:min-w-[360px]"
           >
+            <label htmlFor="newsletter-email" className="sr-only">
+              Email address
+            </label>
             <input
+              id="newsletter-email"
+              name="email"
               type="email"
               required
+              autoComplete="email"
               placeholder="Email address..."
               value={email}
               onChange={(e) => setEmail(e.target.value)}

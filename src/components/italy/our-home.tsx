@@ -1,13 +1,17 @@
+"use client";
+
 import Image from "next/image";
 import { Plane } from "lucide-react";
-
-const photos = [
-  { name: "Exterior", image: "/images/italy/nest-bologna/nest-bologna-exterior-3.webp" },
-  { name: "Living Room", image: "/images/italy/nest-bologna/nest-bologna-bedroom-2.webp" },
-  { name: "Kitchen", image: "/images/italy/nest-bologna/nest-bologna-decor-2.webp" },
-];
+import { useContent } from "@/components/content-provider";
 
 export default function OurHome() {
+  const { c } = useContent();
+  const photos = [
+    { name: "Exterior", image: c("italy.villaPhotos.ourHomeImage1") },
+    { name: "Living Room", image: c("italy.villaPhotos.ourHomeImage2") },
+    { name: "Kitchen", image: c("italy.villaPhotos.ourHomeImage3") },
+  ];
+
   return (
     <section className="relative overflow-hidden bg-[#DCEEEA] px-6 pb-40 pt-20 sm:px-12 lg:px-20">
       {/* Cloud silhouette, bottom of section */}

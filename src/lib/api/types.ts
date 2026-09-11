@@ -55,9 +55,10 @@ export interface Property {
   createdAt: string;
   updatedAt: string;
   pricingTiers: PricingTier[];
-  // Airport-transfer add-on. Absent/false on a not-yet-updated backend, which
-  // reads as "this property doesn't offer transfers" and hides the option
-  // entirely rather than erroring. See BACKEND_CHANGES_VILLA_TRANSPORT.md.
+  // Airport-transfer add-on master switch, set from the villa admin's
+  // Transport tab. Absent/false on a not-yet-updated backend, which reads as
+  // "this property doesn't offer transfers" and hides the option entirely
+  // rather than erroring. See BACKEND_CHANGES_VILLA_TRANSPORT.md.
   transportEnabled?: boolean;
   transportRates?: TransportRate[];
   // City/tourist tax config — currently only Bologna's has this enabled.
@@ -478,6 +479,13 @@ export interface UpdatePropertyInput {
   checkInTime?: string;
   checkOutTime?: string;
   airbnbIcalImportUrls?: string[];
+  maxGuests?: number;
+  // Master on/off switch for the airport-transfer add-on shown to guests
+  // during booking — separate from the per-party-size `active` flags on
+  // transport_rates, which decide which party sizes are priced. This is the
+  // one the admin toggles to pull the option for guests entirely, for
+  // either villa. See BACKEND_CHANGES_VILLA_TRANSPORT.md.
+  transportEnabled?: boolean;
 }
 
 export interface UpdatePricingTierInput {
@@ -565,6 +573,28 @@ export interface NewsletterSubscriber {
   email: string;
   site: Site;
   subscribedAt: string;
+}
+
+// A "can't find it in the catalog" request from the marketplace — the guest
+// describes an item, we source it and quote them back. Not a purchase: no
+// price, no cart, no payment. Spec'd in BACKEND_CHANGES_MARKETPLACE_CUSTOM_ORDERS.md.
+export interface CustomOrderRequest {
+  id: string;
+  site: Site;
+  name: string;
+  email: string;
+  itemDescription: string;
+  notes: string | null;
+  status: LeadStatus;
+  createdAt: string;
+}
+
+export interface CreateCustomOrderRequestInput {
+  site: Site;
+  name: string;
+  email: string;
+  itemDescription: string;
+  notes?: string;
 }
 
 export interface SubscribeNewsletterInput {

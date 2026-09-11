@@ -230,6 +230,94 @@ export const CONTENT_SECTIONS: ContentSection[] = [
       },
     ],
   },
+  {
+    id: "italy-villa-photos",
+    title: "Villa Photos",
+    description:
+      "Every other photo of The Nest Bologna shown across the site — page banners, the \"Our Home\" section, and the photo gallery.",
+    scope: "italy",
+    fields: [
+      {
+        key: "italy.villaPhotos.aboutHero",
+        label: "About page banner",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-exterior-3.webp",
+      },
+      {
+        key: "italy.villaPhotos.heroImage",
+        label: "Contact / Privacy / Terms page banner",
+        help: "Shared across all three pages.",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-exterior-1.webp",
+      },
+      {
+        key: "italy.villaPhotos.ourHomeImage1",
+        label: "\"Our Home\" — Exterior photo",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-exterior-3.webp",
+      },
+      {
+        key: "italy.villaPhotos.ourHomeImage2",
+        label: "\"Our Home\" — Living Room photo",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-bedroom-2.webp",
+      },
+      {
+        key: "italy.villaPhotos.ourHomeImage3",
+        label: "\"Our Home\" — Kitchen photo",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-decor-2.webp",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage1",
+        label: "Gallery photo 1",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-living-room-1.webp",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage2",
+        label: "Gallery photo 2",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-bedroom-1.webp",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage3",
+        label: "Gallery photo 3",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-kitchen-bright.jpeg",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage4",
+        label: "Gallery photo 4",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-courtyard-entrance.jpeg",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage5",
+        label: "Gallery photo 5",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-living-room-chandelier.jpeg",
+      },
+      {
+        key: "italy.villaPhotos.galleryImage6",
+        label: "Gallery photo 6",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-bathroom-1.webp",
+      },
+      {
+        key: "italy.villaPhotos.storyImage1",
+        label: "\"Two Homes\" section — small circular photo",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-living-room-3.webp",
+      },
+      {
+        key: "italy.villaPhotos.storyImage2",
+        label: "\"Two Homes\" section — large circular photo",
+        type: "image",
+        default: "/images/italy/nest-bologna/nest-bologna-courtyard-entrance.jpeg",
+      },
+    ],
+  },
 
   // --- Sri Lanka ------------------------------------------------------------
   {
@@ -334,6 +422,88 @@ export const CONTENT_SECTIONS: ContentSection[] = [
         label: "Photo 4",
         type: "image",
         default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-garden-pathway-1.webp",
+      },
+    ],
+  },
+  {
+    id: "sri-lanka-villa-photos",
+    title: "Villa Photos",
+    description:
+      "Every other photo of Dona's Villa shown across the site — page banners, the \"Our Home\" section, and the photo gallery.",
+    scope: "sri_lanka",
+    fields: [
+      {
+        key: "sri_lanka.villaPhotos.heroImage",
+        label: "Villa / Privacy / Terms page banner",
+        help: "Shared across all three pages.",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg",
+      },
+      {
+        key: "sri_lanka.villaPhotos.ourHomeImage1",
+        label: "\"Our Home\" — Exterior photo",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-front-facade.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.ourHomeImage2",
+        label: "\"Our Home\" — Living Room photo",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-living-room-1.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.ourHomeImage3",
+        label: "\"Our Home\" — Kitchen photo",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-kitchen-dining-1.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage1",
+        label: "Gallery photo 1",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-living-room-1.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage2",
+        label: "Gallery photo 2",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-bedroom-bright.jpeg",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage3",
+        label: "Gallery photo 3",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-kitchen-dining-2.jpeg",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage4",
+        label: "Gallery photo 4",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-front-facade.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage5",
+        label: "Gallery photo 5",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/new/dona-villa-living-room-seating-area.jpeg",
+      },
+      {
+        key: "sri_lanka.villaPhotos.galleryImage6",
+        label: "Gallery photo 6",
+        type: "image",
+        default: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-bathroom-1.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.storyImage1",
+        label: "\"Two Homes\" section — small circular photo",
+        type: "image",
+        default: "/images/sri-lanka/about/homes/villa-living-room.webp",
+      },
+      {
+        key: "sri_lanka.villaPhotos.storyImage2",
+        label: "\"Two Homes\" section — large circular photo",
+        type: "image",
+        default: "/images/sri-lanka/about/homes/villa-garden-day.jpeg",
       },
     ],
   },

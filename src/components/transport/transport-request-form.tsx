@@ -6,10 +6,11 @@ import { submitTransportRequest } from "@/lib/api/leads";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { TransportType } from "@/lib/api/types";
 
+const labelClass = "mb-1 block text-xs font-semibold text-slate-500";
 const inputClass =
-  "rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400";
+  "w-full rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400";
 const textareaClass =
-  "resize-none rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400";
+  "w-full resize-none rounded-2xl border border-slate-200 px-4 py-2 text-sm text-slate-700 outline-none placeholder:text-slate-400";
 
 export function TransportRequestForm({
   propertySlug,
@@ -18,7 +19,13 @@ export function TransportRequestForm({
   propertySlug: string;
   initialNotes?: string;
 }) {
-  const [type, setType] = useState<TransportType>("fixed_price");
+  // This one form covers both the flat-rate airport transfer and the custom
+  // tour-package enquiry — the guest never needs to pick which, since a
+  // package enquiry already arrives here with `initialNotes` set (see
+  // fixed-price-transfers.tsx). The dropdown that used to ask them to choose
+  // "Flat-Rate Transfer" vs "Custom Quote" was redundant with that and
+  // confusing on the tour-package page, so the type is inferred instead.
+  const type: TransportType = initialNotes ? "custom_quote" : "fixed_price";
   const [date, setDate] = useState("");
   const [flightNumber, setFlightNumber] = useState("");
   const [passengers, setPassengers] = useState(1);
@@ -78,68 +85,107 @@ export function TransportRequestForm({
     <form onSubmit={handleSubmit} className="rounded-2xl border border-slate-200 bg-white p-6">
       {error && <p className="mb-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <select
-          value={type}
-          onChange={(e) => setType(e.target.value as TransportType)}
-          className={`${inputClass} sm:col-span-2`}
-        >
-          <option value="fixed_price">Flat-Rate Transfer</option>
-          <option value="custom_quote">Custom Quote</option>
-        </select>
-        <input
-          required
-          type="date"
-          value={date}
-          onChange={(e) => setDate(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          type="text"
-          placeholder="Flight number (optional)"
-          value={flightNumber}
-          onChange={(e) => setFlightNumber(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="number"
-          min={1}
-          placeholder="Passengers"
-          value={passengers}
-          onChange={(e) => setPassengers(Number(e.target.value))}
-          className={inputClass}
-        />
-        <input
-          required
-          type="text"
-          placeholder="Your name"
-          value={contactName}
-          onChange={(e) => setContactName(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="email"
-          placeholder="Email"
-          value={contactEmail}
-          onChange={(e) => setContactEmail(e.target.value)}
-          className={inputClass}
-        />
-        <input
-          required
-          type="tel"
-          placeholder="Phone"
-          value={contactPhone}
-          onChange={(e) => setContactPhone(e.target.value)}
-          className={inputClass}
-        />
-        <textarea
-          placeholder="Notes (optional)"
-          rows={2}
-          value={notes}
-          onChange={(e) => setNotes(e.target.value)}
-          className={`${textareaClass} sm:col-span-2`}
-        />
+        <div>
+          <label htmlFor="transport-date" className={labelClass}>
+            Travel date
+          </label>
+          <input
+            id="transport-date"
+            name="date"
+            required
+            type="date"
+            value={date}
+            onChange={(e) => setDate(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="transport-flight-number" className={labelClass}>
+            Flight number <span className="font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            id="transport-flight-number"
+            name="flightNumber"
+            type="text"
+            placeholder="e.g. UL 504"
+            value={flightNumber}
+            onChange={(e) => setFlightNumber(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="transport-passengers" className={labelClass}>
+            Passengers
+          </label>
+          <input
+            id="transport-passengers"
+            name="passengers"
+            required
+            type="number"
+            min={1}
+            value={passengers}
+            onChange={(e) => setPassengers(Number(e.target.value))}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="transport-name" className={labelClass}>
+            Your name
+          </label>
+          <input
+            id="transport-name"
+            name="name"
+            required
+            type="text"
+            autoComplete="name"
+            value={contactName}
+            onChange={(e) => setContactName(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="transport-email" className={labelClass}>
+            Email
+          </label>
+          <input
+            id="transport-email"
+            name="email"
+            required
+            type="email"
+            autoComplete="email"
+            value={contactEmail}
+            onChange={(e) => setContactEmail(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div>
+          <label htmlFor="transport-phone" className={labelClass}>
+            Phone
+          </label>
+          <input
+            id="transport-phone"
+            name="phone"
+            required
+            type="tel"
+            autoComplete="tel"
+            value={contactPhone}
+            onChange={(e) => setContactPhone(e.target.value)}
+            className={inputClass}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <label htmlFor="transport-notes" className={labelClass}>
+            Notes <span className="font-normal text-slate-400">(optional)</span>
+          </label>
+          <textarea
+            id="transport-notes"
+            name="notes"
+            rows={2}
+            value={notes}
+            onChange={(e) => setNotes(e.target.value)}
+            className={textareaClass}
+          />
+        </div>
       </div>
       <button
         type="submit"

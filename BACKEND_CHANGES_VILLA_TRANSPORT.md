@@ -5,9 +5,11 @@ size (1–8 guests) on a new **Transport** tab in the villa admin.
 
 The frontend is built and live behind 404-safe fallbacks: until these endpoints
 exist, the admin tab renders an editable table with a "not available yet"
-notice, and the guest-facing booking flow simply doesn't show a price (it falls
-back to the existing unpriced "we'll arrange it separately" enquiry, which is
-unchanged).
+notice, and the booking widget shows placeholder prices from a seed table so
+the feature is visible and testable.
+
+**Read section 6 before deploying** — in that pre-backend state the transfer is
+shown and added to the displayed total, but not actually charged.
 
 ---
 
@@ -57,13 +59,41 @@ the price they had configured.
  {
    ...
    pricingTiers: PricingTier[]
-+  transportEnabled?: boolean      // false hides the option entirely
++  transportEnabled?: boolean      // optional; see note below
 +  transportRates?: TransportRate[]
  }
 ```
 
-Both optional. Absent reads as "this property doesn't offer transfers", which
-is what a not-yet-migrated backend should look like.
+**Update (this revision): `transportEnabled` now has an admin control and the
+frontend honours it.** The villa admin's Transport tab has a master on/off
+switch, separate from the per-row `active` flags — turning it off hides the
+airport-transfer option from guests entirely (for either property, Dona's
+Villa or The Nest Bologna), whatever the per-party-size table says. Turning it
+back on restores whatever was already configured. It's saved as its own PATCH
+so flipping it doesn't require resubmitting the price table:
+
+```
+PATCH /api/properties/:propertyId   { "transportEnabled": true | false }
+```
+
+This reuses the same property-update endpoint the Settings tab already calls
+for `minNights`, `checkInTime`, etc. — no new route needed, just accept
+`transportEnabled` as one more optional field on it, restricted to the same
+admin roles (`super_admin`, `villa_manager` scoped to their property). It also
+now sends `maxGuests` — see `BACKEND_CHANGES_ADMIN_CONTENT_REQUESTS.md` for
+that one, since it's unrelated to transport.
+
+**A `false`/missing value must still mean "off"**, i.e. **default the column
+to `false`** if it doesn't exist yet — the frontend now reads this
+per-property field to decide whether to show the add-on at all, so an
+untouched property should not surface it. This is a change from the original
+version of this doc, which called for `transportEnabled` to be ignored
+specifically to avoid a `default false` column stranding the feature off with
+no way to flip it back on. That concern is resolved now that the admin toggle
+exists — a client just switches it on once it's ready to offer transfers.
+
+Both fields optional. Absent reads as "this property doesn't offer
+transfers", which is what a not-yet-migrated backend should look like.
 
 Embedding `transportRates` on the property response is what lets the booking
 page show the price without a second round trip — the same pattern
@@ -186,9 +216,14 @@ guests, transfers aren't offered for 5 guests.
 ## 5. Frontend changes already shipped
 
 **Admin**
-- `src/components/admin/villa/villa-transport-tab.tsx` — new "Transport" tab on
-  every villa, showing a labelled 1–8 table with a price field and an
-  "Offered to guests" checkbox per row.
+- `src/components/admin/villa/villa-transport-tab.tsx` — the "Transport" tab
+  on every villa, showing a labelled 1–8 table with a price field and an
+  "Offered to guests" checkbox per row, **plus a new master on/off switch**
+  above the table (calls `PATCH /api/properties/:propertyId` with
+  `{ transportEnabled }`, optimistic with rollback on failure). Works
+  identically for both properties (Dona's Villa and The Nest Bologna) since
+  the tab and the property-update endpoint are already shared across
+  properties.
 - Tab registered in `src/pages/admin/(protected)/villas/[propertyId]/page.tsx`.
 
 **Public booking flow**
@@ -196,9 +231,35 @@ guests, transfers aren't offered for 5 guests.
 - `src/lib/api/pricing.ts` — `resolveTransportPrice(rates, guestCount)`;
   `StayBreakdown.transportPrice`; both breakdown functions accept it and
   include it in `grandTotal`.
-- `src/components/booking/booking-provider.tsx` — resolves the price for the
-  current party size, exposes it as `transportPrice`, and sends
-  `transportRequested` on booking creation.
+- `src/components/booking/booking-provider.tsx` — fetches the rates and
+  resolves the price for the current party size, exposes it as
+  `transportPrice`, and sends `transportRequested` on booking creation.
+  `transportPrice` now resolves straight to `null` (hiding the add-on) when
+  `property.transportEnabled === false`, before it even looks at the rates.
+- `src/lib/transport-seed-data.ts` — placeholder prices per property, used
+  only while the endpoint is missing (same pattern as
+  `testimonials-seed-data.ts`). Delete it, or return `[]` from
+  `seedTransportRates()`, once real rates are being served.
+
+**Rate resolution order** (first *configured* source wins — note: configured,
+not merely present):
+
+1. `GET /api/properties/:id/transport-rates`
+2. `transportRates` embedded on the property response
+3. the seed table
+
+A source counts as configured only if it contains at least one row with
+`active: true` **and** `price > 0`. This matters because once the table exists
+the endpoint returns all eight guest-count rows, so an untouched property
+answers with eight rows of `{ price: 0, active: false }` — non-empty, but
+nothing bookable. Testing array length alone would accept that placeholder
+table and silently hide the add-on, which is exactly the bug this replaced.
+
+A row with `active: true` but `price: 0` is treated as unconfigured rather than
+as a free transfer.
+
+So implementing *either* endpoint shape works — you do not have to embed
+`transportRates` on the property if the standalone endpoint is easier.
 - `src/components/booking/guest-details-form.tsx` — the existing "Add an
   airport transfer?" checkbox now shows `+<price>` when one applies, and the
   helper text switches from "we'll reach out separately" to "added to your
@@ -212,7 +273,22 @@ soon as `GET /api/properties/:id` starts returning `transportRates`.
 
 ---
 
-## 6. Suggested rollout order
+## 6. Until this ships, the transfer is quoted but not charged
+
+Worth being explicit about, because it is a revenue risk rather than a cosmetic
+one. The frontend currently shows a seed price in the booking widget and adds
+it to the displayed total, but `POST /api/bookings` ignores `transportRequested`
+— so the server-computed `totalPrice` excludes it. A guest who ticks the box is
+quoted the transfer and then **charged without it**.
+
+Two ways to avoid that window:
+
+- Ship §4 (the `transportRequested` handling) in the same release as §3, or
+- Disable the add-on until then by returning `[]` from `seedTransportRates()`
+  in `src/lib/transport-seed-data.ts` — a one-line change that hides the row
+  entirely.
+
+## 7. Suggested rollout order
 
 1. Table + both endpoints. Admin can configure prices; guests see nothing yet
    because `transportRates` isn't on the property response.

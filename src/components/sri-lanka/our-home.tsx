@@ -1,13 +1,17 @@
+"use client";
+
 import Image from "next/image";
 import { Plane } from "lucide-react";
-
-const photos = [
-  { name: "Exterior", image: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-front-facade.webp" },
-  { name: "Living Room", image: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-living-room-1.webp" },
-  { name: "Kitchen", image: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-kitchen-dining-1.webp" },
-];
+import { useContent } from "@/components/content-provider";
 
 export default function OurHome() {
+  const { c } = useContent();
+  const photos = [
+    { name: "Exterior", image: c("sri_lanka.villaPhotos.ourHomeImage1") },
+    { name: "Living Room", image: c("sri_lanka.villaPhotos.ourHomeImage2") },
+    { name: "Kitchen", image: c("sri_lanka.villaPhotos.ourHomeImage3") },
+  ];
+
   return (
     <section className="relative overflow-hidden bg-[#DCEEEA] px-6 pb-40 pt-20 sm:px-12 lg:px-20">
       {/* Cloud silhouette, bottom of section */}

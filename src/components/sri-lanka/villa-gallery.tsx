@@ -1,40 +1,26 @@
+"use client";
+
 import Image from "next/image";
 import { Plane } from "lucide-react";
-
-const gallery = [
-  [
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-living-room-1.webp",
-      alt: "Living room at Dona's Villa with cane armchairs",
-    },
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-bedroom-bright.jpeg",
-      alt: "Guest bedroom at Dona's Villa",
-    },
-  ],
-  [
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-kitchen-dining-2.jpeg",
-      alt: "Kitchen and dining area at Dona's Villa",
-    },
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-exterior-front-facade.webp",
-      alt: "Front facade of Dona's Villa",
-    },
-  ],
-  [
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/new/dona-villa-living-room-seating-area.jpeg",
-      alt: "Living room seating area at Dona's Villa",
-    },
-    {
-      src: "/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-bathroom-1.webp",
-      alt: "Bathroom at Dona's Villa",
-    },
-  ],
-];
+import { useContent } from "@/components/content-provider";
 
 export default function VillaGallery() {
+  const { c } = useContent();
+  const gallery = [
+    [
+      { src: c("sri_lanka.villaPhotos.galleryImage1"), alt: "Living room at Dona's Villa with cane armchairs" },
+      { src: c("sri_lanka.villaPhotos.galleryImage2"), alt: "Guest bedroom at Dona's Villa" },
+    ],
+    [
+      { src: c("sri_lanka.villaPhotos.galleryImage3"), alt: "Kitchen and dining area at Dona's Villa" },
+      { src: c("sri_lanka.villaPhotos.galleryImage4"), alt: "Front facade of Dona's Villa" },
+    ],
+    [
+      { src: c("sri_lanka.villaPhotos.galleryImage5"), alt: "Living room seating area at Dona's Villa" },
+      { src: c("sri_lanka.villaPhotos.galleryImage6"), alt: "Bathroom at Dona's Villa" },
+    ],
+  ];
+
   return (
     <section className="relative overflow-hidden bg-[#DCEEEA] px-6 py-20 sm:px-12 lg:px-20">
       {/* Pink balloon, peeking in from the left edge */}

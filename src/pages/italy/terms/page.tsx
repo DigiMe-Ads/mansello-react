@@ -1,5 +1,6 @@
 import PageHero from "@/components/italy/page-hero";
 import Footer from "@/components/italy/footer";
+import { useContent } from "@/components/content-provider";
 import { useSeo } from "@/lib/seo/use-seo";
 import { PAGE_META } from "@/lib/seo/page-meta";
 
@@ -74,13 +75,14 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 
 export default function ItalyTerms() {
   useSeo(PAGE_META.italyTerms);
+  const { c } = useContent();
 
   return (
     <>
       <main>
         <PageHero
           title="Terms & Conditions"
-          backgroundImage="/images/italy/nest-bologna/nest-bologna-exterior-1.webp"
+          backgroundImage={c("italy.villaPhotos.heroImage")}
           backgroundAlt="Entrance of The Nest Bologna in Bologna, Italy"
           homeHref="/italy"
         />

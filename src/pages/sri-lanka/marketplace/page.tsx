@@ -4,6 +4,7 @@ import BrandsTrust from "@/components/sri-lanka/brands-trust";
 import HowItWorks from "@/components/sri-lanka/how-it-works";
 import DealOfTheDay from "@/components/sri-lanka/deal-of-the-day";
 import BestProducts from "@/components/sri-lanka/best-products";
+import CustomItemRequest from "@/components/sri-lanka/custom-item-request";
 import Footer from "@/components/sri-lanka/footer";
 import { MarketplaceProvider } from "@/components/marketplace/marketplace-provider";
 import { useSeo } from "@/lib/seo/use-seo";
@@ -26,6 +27,7 @@ export default function Marketplace() {
           <DealOfTheDay />
           <BestProducts />
         </MarketplaceProvider>
+        <CustomItemRequest />
       </main>
       <Footer />
     </>

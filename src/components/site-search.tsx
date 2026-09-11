@@ -68,8 +68,13 @@ export function SiteSearch({ pages, showLabel = false }: { pages: SearchablePage
       {open && (
         <div className="absolute right-0 top-full z-50 mt-3 w-72 rounded-2xl bg-white p-3 shadow-lg">
           <form onSubmit={handleSubmit}>
+            <label htmlFor="site-search-input" className="sr-only">
+              Search the site
+            </label>
             <input
               ref={inputRef}
+              id="site-search-input"
+              name="q"
               type="text"
               placeholder="Search the site..."
               value={query}

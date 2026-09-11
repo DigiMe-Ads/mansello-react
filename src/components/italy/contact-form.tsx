@@ -105,43 +105,70 @@ export default function ContactForm() {
             ) : (
               <form onSubmit={handleSubmit} className="mt-6 flex flex-col gap-4">
                 {error && <p className="rounded-2xl bg-red-50 px-5 py-3 text-sm text-red-700">{error}</p>}
-                <input
-                  type="text"
-                  required
-                  placeholder="Enter Your Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  className="rounded-full bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
-                />
-                <input
-                  type="email"
-                  required
-                  placeholder="Enter Email Address"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className="rounded-full bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
-                />
-                <select
-                  required
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value as ContactSubject)}
-                  className="rounded-full bg-white px-5 py-3 text-sm text-slate-400 shadow-sm outline-none"
-                >
-                  <option value="" disabled>
-                    Select Your Subject
-                  </option>
-                  <option value="room_booking">Room Booking</option>
-                  <option value="marketplace">Marketplace</option>
-                  <option value="other">Other</option>
-                </select>
-                <textarea
-                  required
-                  placeholder="Message"
-                  rows={4}
-                  value={message}
-                  onChange={(e) => setMessage(e.target.value)}
-                  className="resize-none rounded-3xl bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
-                />
+                <div>
+                  <label htmlFor="contact-name" className="mb-1 block pl-1 text-xs font-semibold text-slate-500">
+                    Your name
+                  </label>
+                  <input
+                    id="contact-name"
+                    name="name"
+                    type="text"
+                    required
+                    autoComplete="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="w-full rounded-full bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-email" className="mb-1 block pl-1 text-xs font-semibold text-slate-500">
+                    Email address
+                  </label>
+                  <input
+                    id="contact-email"
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    className="w-full rounded-full bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="contact-subject" className="mb-1 block pl-1 text-xs font-semibold text-slate-500">
+                    Subject
+                  </label>
+                  <select
+                    id="contact-subject"
+                    name="subject"
+                    required
+                    value={subject}
+                    onChange={(e) => setSubject(e.target.value as ContactSubject)}
+                    className="w-full rounded-full bg-white px-5 py-3 text-sm text-slate-400 shadow-sm outline-none"
+                  >
+                    <option value="" disabled>
+                      Select Your Subject
+                    </option>
+                    <option value="room_booking">Room Booking</option>
+                    <option value="marketplace">Marketplace</option>
+                    <option value="other">Other</option>
+                  </select>
+                </div>
+                <div>
+                  <label htmlFor="contact-message" className="mb-1 block pl-1 text-xs font-semibold text-slate-500">
+                    Message
+                  </label>
+                  <textarea
+                    id="contact-message"
+                    name="message"
+                    required
+                    rows={4}
+                    value={message}
+                    onChange={(e) => setMessage(e.target.value)}
+                    className="w-full resize-none rounded-3xl bg-white px-5 py-3 text-sm text-slate-700 shadow-sm outline-none placeholder:text-slate-400"
+                  />
+                </div>
                 <button
                   type="submit"
                   disabled={submitting}

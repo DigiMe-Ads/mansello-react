@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT } from "@/components/admin/input-styles";
 import { getTransportRates, updateTransportRates } from "@/lib/api/transport-rates";
+import { updateProperty } from "@/lib/api/properties";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { Property } from "@/lib/api/types";
 
@@ -23,13 +24,21 @@ const DEFAULT_ROWS: Row[] = Array.from({ length: MAX_GUESTS }, (_, i) => ({
   active: false,
 }));
 
-export function VillaTransportTab({ property }: { property: Property }) {
+export function VillaTransportTab({ property, onUpdated }: { property: Property; onUpdated?: () => void }) {
   const { authedFetch } = useAdminAuth();
   const [rows, setRows] = useState<Row[]>(DEFAULT_ROWS);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  // Master on/off switch — separate from the per-party-size rows below.
+  // Turning this off pulls the whole add-on from guests immediately,
+  // whatever the rows say. Saved on its own so flipping it doesn't require
+  // re-submitting the price table.
+  const [transportEnabled, setTransportEnabled] = useState(property.transportEnabled !== false);
+  const [togglingEnabled, setTogglingEnabled] = useState(false);
+  const [toggleError, setToggleError] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -66,6 +75,22 @@ export function VillaTransportTab({ property }: { property: Property }) {
     setSuccess(false);
   }
 
+  async function handleToggleEnabled() {
+    const next = !transportEnabled;
+    setTransportEnabled(next); // optimistic — flip back below on failure
+    setTogglingEnabled(true);
+    setToggleError(null);
+    try {
+      await updateProperty(authedFetch, property.id, { transportEnabled: next });
+      onUpdated?.();
+    } catch (err) {
+      setTransportEnabled(!next);
+      setToggleError(err instanceof ApiRequestError ? err.message : "Failed to update transport availability");
+    } finally {
+      setTogglingEnabled(false);
+    }
+  }
+
   async function handleSave() {
     setSaving(true);
     setError(null);
@@ -94,6 +119,36 @@ export function VillaTransportTab({ property }: { property: Property }) {
       {success && (
         <p className="rounded-lg bg-emerald-50 px-4 py-3 text-sm text-emerald-700">Transport prices saved.</p>
       )}
+
+      <div className="flex items-center justify-between gap-4 rounded-2xl bg-white p-6 shadow-sm">
+        <div>
+          <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">
+            Offer Airport Transfers to Guests
+          </h3>
+          <p className="mt-1 text-xs text-slate-400">
+            Master switch for this property. Off hides the airport-transfer option from guests during booking
+            entirely, regardless of the prices configured below.
+          </p>
+          {toggleError && <p className="mt-2 text-xs font-semibold text-red-600">{toggleError}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={transportEnabled}
+          aria-label={`Airport transfers are ${transportEnabled ? "on" : "off"} for ${property.name}`}
+          onClick={handleToggleEnabled}
+          disabled={togglingEnabled}
+          className={`relative h-7 w-14 shrink-0 rounded-full transition disabled:opacity-60 ${
+            transportEnabled ? "bg-[#8DC63F]" : "bg-slate-300"
+          }`}
+        >
+          <span
+            className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${
+              transportEnabled ? "left-8" : "left-1"
+            }`}
+          />
+        </button>
+      </div>
 
       <div className="rounded-2xl bg-white p-6 shadow-sm">
         <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">

@@ -162,38 +162,50 @@ function NewBlockForm({
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm">
       <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Add Manual Block</h3>
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
-      <div className="mt-4 flex flex-wrap items-center gap-3">
+      <div className="mt-4 flex flex-wrap items-end gap-3">
         {rooms.length > 0 && (
-          <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className={ADMIN_INPUT}>
-            <option value="">Whole property</option>
-            {rooms.map((r) => (
-              <option key={r.id} value={r.id}>
-                {r.name}
-              </option>
-            ))}
-          </select>
+          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Room
+            <select value={roomId} onChange={(e) => setRoomId(e.target.value)} className={`${ADMIN_INPUT} font-normal normal-case`}>
+              <option value="">Whole property</option>
+              {rooms.map((r) => (
+                <option key={r.id} value={r.id}>
+                  {r.name}
+                </option>
+              ))}
+            </select>
+          </label>
         )}
-        <input
-          required
-          type="date"
-          value={startDate}
-          onChange={(e) => setStartDate(e.target.value)}
-          className={ADMIN_INPUT}
-        />
-        <input
-          required
-          type="date"
-          value={endDate}
-          onChange={(e) => setEndDate(e.target.value)}
-          className={ADMIN_INPUT}
-        />
-        <input
-          type="text"
-          placeholder="Why these dates are blocked — e.g. maintenance"
-          value={reason}
-          onChange={(e) => setReason(e.target.value)}
-          className={`${ADMIN_INPUT} flex-1`}
-        />
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Start date
+          <input
+            required
+            type="date"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className={`${ADMIN_INPUT} font-normal normal-case`}
+          />
+        </label>
+        <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          End date
+          <input
+            required
+            type="date"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className={`${ADMIN_INPUT} font-normal normal-case`}
+          />
+        </label>
+        <label className="flex flex-1 flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+          Reason <span className="font-normal normal-case text-slate-400">(optional)</span>
+          <input
+            type="text"
+            placeholder="e.g. maintenance"
+            value={reason}
+            onChange={(e) => setReason(e.target.value)}
+            className={`${ADMIN_INPUT} font-normal normal-case`}
+          />
+        </label>
         <button
           type="submit"
           disabled={submitting}

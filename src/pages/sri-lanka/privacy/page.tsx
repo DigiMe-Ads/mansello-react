@@ -1,5 +1,6 @@
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
+import { useContent } from "@/components/content-provider";
 import { useSeo } from "@/lib/seo/use-seo";
 import { PAGE_META } from "@/lib/seo/page-meta";
 
@@ -64,13 +65,14 @@ const sections: { heading: string; paragraphs: string[] }[] = [
 
 export default function SriLankaPrivacy() {
   useSeo(PAGE_META.sriLankaPrivacy);
+  const { c } = useContent();
 
   return (
     <>
       <main>
         <PageHero
           title="Privacy Policy"
-          backgroundImage="/images/sri-lanka/airbnb/sri-lanka-home/dona-villa-facade-bright.jpeg"
+          backgroundImage={c("sri_lanka.villaPhotos.heroImage")}
           backgroundAlt="Facade of Dona's Villa in Pamunugama, Sri Lanka"
           homeHref="/sri-lanka"
         />

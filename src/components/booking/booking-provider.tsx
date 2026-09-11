@@ -4,14 +4,16 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { getPropertyBySlug } from "@/lib/api/properties";
 import { getAvailability } from "@/lib/api/availability";
 import { createBooking } from "@/lib/api/bookings";
-import { resolveTransportPrice } from "@/lib/api/pricing";
+import { hasUsableTransportRates, resolveTransportPrice } from "@/lib/api/pricing";
 import { submitTransportRequest } from "@/lib/api/leads";
 import { getOffers } from "@/lib/api/offers";
+import { getTransportRates } from "@/lib/api/transport-rates";
+import { seedTransportRates } from "@/lib/transport-seed-data";
 import { buildBlockedDateSetForRooms, isRangeAvailable } from "@/lib/availability";
 import { guestCountOptions, roomOptionsForGuestCount } from "@/lib/api/pricing";
 import { addDaysToKey, todayKey } from "@/lib/date";
 import { ApiRequestError, isConflict, isValidationError } from "@/lib/api/errors";
-import type { AvailabilityBlock, Booking, Offer, TransportType } from "@/lib/api/types";
+import type { AvailabilityBlock, Booking, Offer, TransportRate, TransportType } from "@/lib/api/types";
 import type { Property } from "@/lib/api/types";
 
 type Step = "select" | "details" | "payment";
@@ -22,8 +24,6 @@ export interface GuestDetailsInput {
   guestPhone: string;
   guestIdDocumentType?: string;
   guestIdDocumentNumber?: string;
-  wantsTransport?: boolean;
-  transportType?: TransportType;
   transportDate?: string;
   transportFlightNumber?: string;
   transportNotes?: string;
@@ -58,6 +58,11 @@ interface BookingProviderState {
   // server prices the transfer itself from the same table, so the client can
   // never influence what is charged (see BACKEND_CHANGES_VILLA_TRANSPORT.md).
   transportPrice: number | null;
+  // Whether the guest wants the airport transfer. Owned here rather than by
+  // the details form so the price can be shown — and included in the total —
+  // back on the date/room step, before anyone reaches checkout.
+  wantsTransport: boolean;
+  setWantsTransport: (value: boolean) => void;
   booking: Booking | null;
   clientSecret: string | null;
   submitting: boolean;
@@ -105,6 +110,8 @@ export function BookingProvider({
   const [rooms, setRoomsState] = useState(1);
   const [childrenUnder14, setChildrenUnder14State] = useState(0);
   const [selectedRoomIds, setSelectedRoomIdsState] = useState<string[]>([]);
+  const [wantsTransport, setWantsTransport] = useState(false);
+  const [transportRates, setTransportRates] = useState<TransportRate[] | null>(null);
 
   const roomList = useMemo(() => property?.rooms ?? [], [property]);
   const roomIds = useMemo(() => roomList.map((r) => r.id), [roomList]);
@@ -159,6 +166,29 @@ export function BookingProvider({
             if (!cancelled) setOffers(result);
           })
           .catch(() => {});
+
+        // Airport-transfer prices. Fallback chain: the dedicated endpoint,
+        // then whatever the property response embedded, then the seed table —
+        // so the add-on is visible before the backend ships and switches to
+        // real data with no frontend change.
+        // Take the first source that is actually configured. Testing for
+        // "configured" rather than "present" matters: once the table exists the
+        // endpoint returns all eight guest-count rows, so an untouched property
+        // answers with eight rows of { price: 0, active: false } — non-empty,
+        // but nothing anyone can book.
+        const pickTransportRates = (fetched?: TransportRate[]) => {
+          if (hasUsableTransportRates(fetched)) return fetched!;
+          if (hasUsableTransportRates(prop.transportRates)) return prop.transportRates!;
+          return seedTransportRates(propertySlug);
+        };
+
+        getTransportRates(prop.id)
+          .then((result) => {
+            if (!cancelled) setTransportRates(pickTransportRates(result));
+          })
+          .catch(() => {
+            if (!cancelled) setTransportRates(pickTransportRates());
+          });
 
         // Pick up a selection made on the homepage's reservation widget
         // before it linked here (?checkIn=&checkOut=&guests=) — only
@@ -290,10 +320,14 @@ export function BookingProvider({
   }, []);
 
   // Priced per party size, not per person, and charged once per booking.
+  // Availability is decided by two things: the per-row `active` flag (which
+  // party sizes are priced at all) and `property.transportEnabled`, the
+  // admin's master on/off switch for the whole add-on — turning it off hides
+  // the option from guests regardless of what's priced underneath.
   const transportPrice =
     property?.transportEnabled === false
       ? null
-      : resolveTransportPrice(property?.transportRates, guests);
+      : resolveTransportPrice(transportRates ?? property?.transportRates, guests);
 
   const submitGuestDetails = useCallback(
     async (input: GuestDetailsInput) => {
@@ -317,7 +351,7 @@ export function BookingProvider({
           roomIds: selectedRoomIds.length ? selectedRoomIds : undefined,
           childrenUnder14,
           // A flag, never an amount — the server looks up the price.
-          transportRequested: input.wantsTransport && transportPrice != null ? true : undefined,
+          transportRequested: wantsTransport && transportPrice != null ? true : undefined,
         });
         setBooking(result.booking);
         setClientSecret(result.clientSecret);
@@ -326,12 +360,14 @@ export function BookingProvider({
         // Transport add-on is a best-effort side request — the booking
         // itself already succeeded, so a failure here shouldn't block
         // checkout. Guest can still request transport separately if it fails.
-        if (input.wantsTransport) {
+        if (wantsTransport) {
           try {
             await submitTransportRequest({
               propertyId: property.id,
               bookingId: result.booking.id,
-              type: input.transportType ?? "fixed_price",
+              // Only the flat-rate transfer is offered on a booking now;
+              // bespoke itineraries go through the Transport page instead.
+              type: "fixed_price",
               date: input.transportDate || checkIn,
               flightNumber: input.transportFlightNumber || undefined,
               passengers: guests,
@@ -364,7 +400,7 @@ export function BookingProvider({
         setSubmitting(false);
       }
     },
-    [property, checkIn, checkOut, guests, rooms, selectedRoomIds, childrenUnder14, transportPrice, refetchAvailability]
+    [property, checkIn, checkOut, guests, rooms, selectedRoomIds, childrenUnder14, transportPrice, wantsTransport, refetchAvailability]
   );
 
   const value = useMemo<BookingProviderState>(
@@ -383,6 +419,8 @@ export function BookingProvider({
       roomBlockedDates,
       offers,
       transportPrice,
+      wantsTransport,
+      setWantsTransport,
       booking,
       clientSecret,
       submitting,
@@ -415,6 +453,7 @@ export function BookingProvider({
       roomBlockedDates,
       offers,
       transportPrice,
+      wantsTransport,
       booking,
       clientSecret,
       submitting,

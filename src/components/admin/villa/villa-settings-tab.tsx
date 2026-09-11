@@ -11,6 +11,7 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
   const { authedFetch } = useAdminAuth();
   const [minNights, setMinNights] = useState(property.minNights);
   const [turnoverBufferDays, setTurnoverBufferDays] = useState(property.turnoverBufferDays);
+  const [maxGuests, setMaxGuests] = useState(property.maxGuests);
   const [checkInTime, setCheckInTime] = useState(property.checkInTime);
   const [checkOutTime, setCheckOutTime] = useState(property.checkOutTime);
   const [icalUrls, setIcalUrls] = useState(property.airbnbIcalImportUrls.join("\n"));
@@ -29,6 +30,7 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
       await updateProperty(authedFetch, property.id, {
         minNights,
         turnoverBufferDays,
+        maxGuests,
         checkInTime,
         checkOutTime,
         airbnbIcalImportUrls: icalUrls
@@ -70,6 +72,16 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
               min={0}
               value={turnoverBufferDays}
               onChange={(e) => setTurnoverBufferDays(Number(e.target.value))}
+              className={`${ADMIN_INPUT} font-normal normal-case`}
+            />
+          </label>
+          <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
+            Max Guests
+            <input
+              type="number"
+              min={1}
+              value={maxGuests}
+              onChange={(e) => setMaxGuests(Number(e.target.value))}
               className={`${ADMIN_INPUT} font-normal normal-case`}
             />
           </label>
