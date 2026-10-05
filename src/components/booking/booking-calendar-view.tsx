@@ -17,7 +17,7 @@ import {
   totalRoomCapacity,
 } from "@/lib/api/pricing";
 import { formatMoney } from "@/lib/currency";
-import { isRangeAvailable } from "@/lib/availability";
+import { isRangeAvailable, isValidCheckOut } from "@/lib/availability";
 import { isRenderableImageSrc } from "@/lib/image";
 
 // Stripe's SDK is only needed once a guest reaches the payment step, so it's
@@ -89,13 +89,19 @@ export function MonthGridView({
         ))}
         {grid.weeks.flat().map((cell, i) => {
           if (!cell) return <span key={i} />;
-          const disabled = blockedDates.has(cell.key) || cell.key < today;
+          // Booked nights stay clickable when they'd be a valid check-out
+          // for the current check-in (the next guest arrives that day, ours
+          // leaves that morning).
+          const checkOutOnly =
+            blockedDates.has(cell.key) && !checkOut && isValidCheckOut(blockedDates, checkIn, cell.key);
+          const disabled = cell.key < today || (blockedDates.has(cell.key) && !checkOutOnly);
           return (
             <button
               type="button"
               key={cell.key}
               disabled={disabled}
               onClick={() => onSelect(cell.key)}
+              title={checkOutOnly ? "Check-out only" : undefined}
               className={`flex h-8 items-center justify-center text-sm ${cellClassName(cell.key, disabled)}`}
             >
               {cell.day}

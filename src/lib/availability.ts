@@ -45,3 +45,12 @@ export function isRangeAvailable(blocked: Set<string>, checkIn: string, checkOut
   }
   return true;
 }
+
+// A booked night is still a valid CHECK-OUT day: blocks are half-open, so a
+// guest leaving on the morning of the 16th doesn't overlap a booking whose
+// first night is the 16th. Without this, a free night squeezed between two
+// bookings (e.g. checkout 15th, next check-in 16th) could never be booked —
+// the 16th was greyed out, so there was no way to pick it as check-out.
+export function isValidCheckOut(blocked: Set<string>, checkIn: string | null, key: string): boolean {
+  return Boolean(checkIn) && key > checkIn! && isRangeAvailable(blocked, checkIn!, key);
+}

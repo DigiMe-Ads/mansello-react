@@ -9,7 +9,7 @@ import { submitTransportRequest } from "@/lib/api/leads";
 import { getOffers } from "@/lib/api/offers";
 import { getTransportRates } from "@/lib/api/transport-rates";
 import { seedTransportRates } from "@/lib/transport-seed-data";
-import { buildBlockedDateSetForRooms, isRangeAvailable } from "@/lib/availability";
+import { buildBlockedDateSetForRooms, isRangeAvailable, isValidCheckOut } from "@/lib/availability";
 import { guestCountOptions, roomOptionsForGuestCount } from "@/lib/api/pricing";
 import { addDaysToKey, todayKey } from "@/lib/date";
 import { ApiRequestError, isConflict, isValidationError } from "@/lib/api/errors";
@@ -238,7 +238,11 @@ export function BookingProvider({
 
   const selectDay = useCallback(
     (key: string) => {
-      if (blockedDates.has(key) || key < todayKey()) return;
+      if (key < todayKey()) return;
+      // A booked night can only be picked as the check-out of an open
+      // selection (see isValidCheckOut), never as a check-in.
+      const pickingCheckOut = Boolean(checkIn) && !checkOut;
+      if (blockedDates.has(key) && !(pickingCheckOut && isValidCheckOut(blockedDates, checkIn, key))) return;
 
       setCheckIn((prevCheckIn) => {
         if (!prevCheckIn || checkOut) {
@@ -253,7 +257,7 @@ export function BookingProvider({
         return prevCheckIn;
       });
     },
-    [blockedDates, checkOut]
+    [blockedDates, checkIn, checkOut]
   );
 
   const setGuests = useCallback(
