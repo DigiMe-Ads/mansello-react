@@ -6,9 +6,11 @@ import type {
   CreateOrderInput,
   CreateOrderResponse,
   CreateProductInput,
+  CreateProductReviewInput,
   LowStockItem,
   Order,
   Product,
+  ProductReview,
   ShippingRate,
   UpdateCategoryInput,
   UpdateProductInput,
@@ -55,6 +57,20 @@ export function getProductsAdmin(fetcher: AuthedFetch, categorySlug?: string) {
 
 export function getProduct(id: string) {
   return apiFetch<Product>(`/api/marketplace/catalog/products/${id}`);
+}
+
+// Public product reviews — newest first. Spec'd in
+// BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md; a 404 from a
+// not-yet-updated backend is handled by the caller (reviews just hide).
+export function getProductReviews(productId: string) {
+  return apiFetch<ProductReview[]>(`/api/marketplace/catalog/products/${productId}/reviews`);
+}
+
+export function createProductReview(productId: string, input: CreateProductReviewInput) {
+  return apiFetch<ProductReview>(`/api/marketplace/catalog/products/${productId}/reviews`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
 }
 
 // Returns the created (pending-payment) order alongside a Stripe

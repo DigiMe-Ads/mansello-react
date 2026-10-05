@@ -11,12 +11,8 @@ import { isRenderableImageSrc } from "@/lib/image";
 // capped so this teaser stays compact; the full catalog is one scroll away.
 const MAX_DEAL_PRODUCTS = 4;
 
-function scrollToProducts() {
-  document.getElementById("products")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
-
 export default function DealOfTheDay() {
-  const { products, loading, error } = useMarketplace();
+  const { products, loading, error, openProduct } = useMarketplace();
   const dealProducts = products.slice(0, MAX_DEAL_PRODUCTS);
 
   const [active, setActive] = useState(0);
@@ -153,7 +149,7 @@ export default function DealOfTheDay() {
               <p className="mt-2 text-sm text-slate-500">{formatMoney(activeProduct.priceUsd, "usd")}</p>
               <button
                 type="button"
-                onClick={scrollToProducts}
+                onClick={() => openProduct(activeProduct)}
                 className="mt-5 rounded-full bg-[#8DC63F] px-8 py-3 text-sm font-semibold text-white shadow-md transition hover:bg-[#72A62E]"
               >
                 Shop Now

@@ -33,8 +33,13 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
         maxGuests,
         checkInTime,
         checkOutTime,
+        // Split on any whitespace or comma, not just newlines — two links
+        // pasted onto one line would otherwise be saved as a single
+        // unfetchable URL. iCal URLs never contain either character.
+        // (The field keeps its historical `airbnb` name but holds every
+        // channel's feed — Airbnb, Booking.com, VRBO...)
         airbnbIcalImportUrls: icalUrls
-          .split("\n")
+          .split(/[\s,]+/)
           .map((u) => u.trim())
           .filter(Boolean),
       });
@@ -108,9 +113,14 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
         </div>
 
         <label className="mt-4 flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Airbnb Import URLs (one per line)
+          Calendar Import URLs (one per line)
+          <span className="font-normal normal-case text-slate-400">
+            Paste the iCal export link from each channel — Airbnb, Booking.com, etc. Their bookings are pulled in and
+            blocked here automatically.
+          </span>
           <textarea
-            rows={3}
+            rows={4}
+            placeholder={"https://www.airbnb.com/calendar/ical/....ics?t=...\nhttps://ical.booking.com/v1/export?t=..."}
             value={icalUrls}
             onChange={(e) => setIcalUrls(e.target.value)}
             className={`${ADMIN_TEXTAREA} font-normal normal-case`}
@@ -129,7 +139,8 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
       <div className="rounded-2xl bg-white p-6 shadow-sm">
         <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Our Export Feed</h3>
         <p className="mt-1 text-xs text-slate-400">
-          Paste this into Airbnb&apos;s &quot;Import Calendar&quot; field so our confirmed dates block Airbnb too.
+          Paste this into the &quot;Import Calendar&quot; field on Airbnb and Booking.com so our confirmed dates block
+          those channels too.
         </p>
         <code className="mt-3 block break-all rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">{exportUrl}</code>
       </div>

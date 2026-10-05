@@ -11,14 +11,60 @@ import type { AvailabilityBlock, Room } from "@/lib/api/types";
 const SOURCE_LABELS: Record<string, string> = {
   direct: "Direct booking",
   airbnb: "Airbnb",
+  booking_com: "Booking.com",
   manual: "Manual block",
 };
 
 const SOURCE_COLORS: Record<string, string> = {
   direct: "bg-emerald-100 text-emerald-700",
   airbnb: "bg-rose-100 text-rose-700",
+  booking_com: "bg-blue-100 text-blue-700",
   manual: "bg-slate-200 text-slate-700",
 };
+
+// Blocks are stored half-open, [startDate, endDate): endDate is the first
+// day that is free again (a booking's check-out day). That's natural for
+// bookings, but not for an admin blocking "the 15th", who expects to enter
+// 15th → 15th — so manual blocks are entered and shown as an inclusive
+// range of blocked nights, and converted at the edges.
+function nightsBetween(startKey: string, endKey: string): number {
+  return Math.round((Date.parse(endKey) - Date.parse(startKey)) / 86_400_000);
+}
+
+function BlockDates({ block }: { block: AvailabilityBlock }) {
+  const start = block.startDate.slice(0, 10);
+  const end = block.endDate.slice(0, 10);
+  const nights = nightsBetween(start, end);
+
+  if (nights <= 0) {
+    return (
+      <span className="font-semibold text-amber-700">
+        {formatDisplayDate(start)} — blocks nothing (end date was not after the start). Release and re-add it.
+      </span>
+    );
+  }
+
+  const nightsLabel = `${nights} night${nights === 1 ? "" : "s"}`;
+  if (block.source === "manual") {
+    const lastNight = addDaysToKey(end, -1);
+    return (
+      <>
+        {lastNight === start
+          ? formatDisplayDate(start)
+          : `${formatDisplayDate(start)} – ${formatDisplayDate(lastNight)}`}
+        <span className="ml-2 text-xs text-slate-400">{nightsLabel}</span>
+      </>
+    );
+  }
+  return (
+    <>
+      {formatDisplayDate(start)} → {formatDisplayDate(end)}
+      <span className="ml-2 text-xs text-slate-400">
+        {nightsLabel}, check-out {formatDisplayDate(end)} stays free
+      </span>
+    </>
+  );
+}
 
 export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string; rooms?: Room[] }) {
   const { authedFetch } = useAdminAuth();
@@ -95,7 +141,7 @@ export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string;
                     </td>
                   )}
                   <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
-                    {formatDisplayDate(block.startDate.slice(0, 10))} → {formatDisplayDate(block.endDate.slice(0, 10))}
+                    <BlockDates block={block} />
                   </td>
                   <td className="border-t border-slate-100 px-4 py-3 text-right">
                     {block.source === "manual" && (
@@ -137,12 +183,18 @@ function NewBlockForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (endDate < startDate) {
+      setError("The last blocked night can't be before the first.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
       await createManualBlock(authedFetch, propertyId, {
         startDate,
-        endDate,
+        // `endDate` here is the last blocked night (inclusive); the API
+        // wants the first free day after it.
+        endDate: addDaysToKey(endDate, 1),
         reason: reason || undefined,
         roomId: roomId || undefined,
       });
@@ -161,6 +213,9 @@ function NewBlockForm({
   return (
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm">
       <h3 className="text-sm font-bold uppercase tracking-wide text-[#153C4D]">Add Manual Block</h3>
+      <p className="mt-1 text-xs text-slate-400">
+        Pick the first and last night to block — both are included. To block just the 15th, choose the 15th for both.
+      </p>
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="mt-4 flex flex-wrap items-end gap-3">
         {rooms.length > 0 && (
@@ -177,20 +232,24 @@ function NewBlockForm({
           </label>
         )}
         <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          Start date
+          First night blocked
           <input
             required
             type="date"
             value={startDate}
-            onChange={(e) => setStartDate(e.target.value)}
+            onChange={(e) => {
+              setStartDate(e.target.value);
+              if (!endDate || endDate < e.target.value) setEndDate(e.target.value);
+            }}
             className={`${ADMIN_INPUT} font-normal normal-case`}
           />
         </label>
         <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-400">
-          End date
+          Last night blocked
           <input
             required
             type="date"
+            min={startDate || undefined}
             value={endDate}
             onChange={(e) => setEndDate(e.target.value)}
             className={`${ADMIN_INPUT} font-normal normal-case`}

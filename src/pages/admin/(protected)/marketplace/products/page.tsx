@@ -26,6 +26,57 @@ import { formatMoney } from "@/lib/currency";
 import type { Category, LowStockItem, Product, ShippingRate } from "@/lib/api/types";
 import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
 import { AdminField } from "@/components/admin/admin-field";
+import { RichTextEditor } from "@/components/admin/rich-text-editor";
+import { categoriesInTreeOrder, categoryPath, isTopLevel, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
+import { isRichTextEmpty } from "@/lib/rich-text";
+
+// Product category <select> options: each top-level category followed by
+// its subcategories, indented. Products can be filed under either.
+function CategoryOptions({ categories }: { categories: Category[] }) {
+  return (
+    <>
+      {categoriesInTreeOrder(categories).map(({ category, depth }) => (
+        <option key={category.id} value={category.id}>
+          {depth === 1 ? `\u00A0\u00A0\u00A0↳ ${category.name}` : category.name}
+        </option>
+      ))}
+    </>
+  );
+}
+
+// Parent picker for the category forms. Only top-level categories can be
+// parents (one level of nesting), and a category can't be its own parent.
+function ParentCategorySelect({
+  categories,
+  value,
+  onChange,
+  excludeId,
+  disabled,
+}: {
+  categories: Category[];
+  value: string;
+  onChange: (value: string) => void;
+  excludeId?: string;
+  disabled?: boolean;
+}) {
+  return (
+    <select
+      value={value}
+      disabled={disabled}
+      onChange={(e) => onChange(e.target.value)}
+      className={`${ADMIN_SELECT} disabled:opacity-60`}
+    >
+      <option value="">None — this is a main category</option>
+      {topLevelCategories(categories)
+        .filter((c) => c.id !== excludeId)
+        .map((c) => (
+          <option key={c.id} value={c.id}>
+            Subcategory of {c.name}
+          </option>
+        ))}
+    </select>
+  );
+}
 
 export default function AdminProductsPage() {
   return (
@@ -91,6 +142,7 @@ function ProductsContent() {
 
       {showCategoryForm && (
         <CreateCategoryForm
+          categories={categories}
           featuredCount={categories.filter((c) => c.featured).length}
           onCreated={() => {
             setShowCategoryForm(false);
@@ -239,7 +291,9 @@ function ProductRow({
           <p className="font-semibold text-[#153C4D]">{product.name}</p>
           <p className="text-xs text-slate-400">{product.sku}</p>
         </td>
-        <td className="border-t border-slate-100 px-4 py-3 text-slate-600">{product.category.name}</td>
+        <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
+          {categoryPath(categories.find((c) => c.id === product.categoryId) ?? product.category, categories)}
+        </td>
         <td className="border-t border-slate-100 px-4 py-3 font-semibold text-[#153C4D]">
           {formatMoney(product.priceUsd, "usd")}
         </td>
@@ -351,11 +405,13 @@ function CategoryList({
           </tr>
         </thead>
         <tbody>
-          {categories.map((category) => (
+          {categoriesInTreeOrder(categories).map(({ category, depth }) => (
             <CategoryRow
               key={category.id}
               category={category}
-              productCount={products.filter((p) => p.category.id === category.id).length}
+              categories={categories}
+              depth={depth}
+              productCount={products.filter((p) => p.categoryId === category.id).length}
               featuredCount={featuredCount}
               onChanged={onChanged}
             />
@@ -368,11 +424,15 @@ function CategoryList({
 
 function CategoryRow({
   category,
+  categories,
+  depth,
   productCount,
   featuredCount,
   onChanged,
 }: {
   category: Category;
+  categories: Category[];
+  depth: 0 | 1;
   productCount: number;
   featuredCount: number;
   onChanged: () => void;
@@ -382,6 +442,7 @@ function CategoryRow({
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const subcategoryCount = depth === 0 ? subcategoriesOf(categories, category.id).length : 0;
 
   async function handleDelete() {
     setDeleting(true);
@@ -403,6 +464,7 @@ function CategoryRow({
         <td colSpan={4} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
           <EditCategoryForm
             category={category}
+            categories={categories}
             featuredCount={featuredCount}
             onDone={() => {
               setEditing(false);
@@ -418,8 +480,16 @@ function CategoryRow({
   return (
     <>
       <tr>
-        <td className="border-t border-slate-100 px-4 py-3">
-          <p className="font-semibold text-[#153C4D]">{category.name}</p>
+        <td className={`border-t border-slate-100 py-3 pr-4 ${depth === 1 ? "pl-10" : "pl-4"}`}>
+          <p className="font-semibold text-[#153C4D]">
+            {depth === 1 && <span className="mr-1 text-slate-300">↳</span>}
+            {category.name}
+            {subcategoryCount > 0 && (
+              <span className="ml-2 text-xs font-normal text-slate-400">
+                {subcategoryCount} subcategor{subcategoryCount === 1 ? "y" : "ies"}
+              </span>
+            )}
+          </p>
           {category.description && <p className="mt-0.5 text-xs text-slate-500">{category.description}</p>}
         </td>
         <td className="border-t border-slate-100 px-4 py-3 text-slate-600">{productCount}</td>
@@ -484,11 +554,13 @@ const MAX_FEATURED_CATEGORIES = 4;
 
 function EditCategoryForm({
   category,
+  categories,
   featuredCount,
   onDone,
   onCancel,
 }: {
   category: Category;
+  categories: Category[];
   featuredCount: number;
   onDone: () => void;
   onCancel: () => void;
@@ -497,8 +569,12 @@ function EditCategoryForm({
   const [description, setDescription] = useState(category.description ?? "");
   const [imageUrl, setImageUrl] = useState<string[]>(category.imageUrl ? [category.imageUrl] : []);
   const [featured, setFeatured] = useState(Boolean(category.featured));
+  const [parentId, setParentId] = useState(isTopLevel(category, categories) ? "" : (category.parentId ?? ""));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // A category that has subcategories of its own can't become one (only
+  // one level of nesting).
+  const hasChildren = subcategoriesOf(categories, category.id).length > 0;
 
   // Already-featured categories don't count against their own slot.
   const otherFeaturedCount = featuredCount - (category.featured ? 1 : 0);
@@ -513,6 +589,7 @@ function EditCategoryForm({
         description,
         imageUrl: imageUrl[0],
         featured,
+        parentId: parentId || null,
       });
       onDone();
     } catch (err) {
@@ -525,6 +602,22 @@ function EditCategoryForm({
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-3">
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
+      <AdminField
+        label="Parent category"
+        help={
+          hasChildren
+            ? "This category has its own subcategories, so it has to stay a main category."
+            : "Pick a main category to make this a subcategory of it."
+        }
+      >
+        <ParentCategorySelect
+          categories={categories}
+          value={parentId}
+          onChange={setParentId}
+          excludeId={category.id}
+          disabled={hasChildren}
+        />
+      </AdminField>
       <textarea
         placeholder="Short description shown on the homepage featured section"
         rows={2}
@@ -569,13 +662,22 @@ function EditCategoryForm({
   );
 }
 
-function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: number; onCreated: () => void }) {
+function CreateCategoryForm({
+  categories,
+  featuredCount,
+  onCreated,
+}: {
+  categories: Category[];
+  featuredCount: number;
+  onCreated: () => void;
+}) {
   const { authedFetch } = useAdminAuth();
   const [name, setName] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
   const [imageUrl, setImageUrl] = useState<string[]>([]);
   const [featured, setFeatured] = useState(false);
+  const [parentId, setParentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -592,12 +694,14 @@ function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: numbe
         description: description || undefined,
         imageUrl: imageUrl[0],
         featured,
+        parentId: parentId || undefined,
       });
       setName("");
       setSlug("");
       setDescription("");
       setImageUrl([]);
       setFeatured(false);
+      setParentId("");
       onCreated();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Failed to create category");
@@ -623,6 +727,13 @@ function CreateCategoryForm({ featuredCount, onCreated }: { featuredCount: numbe
           onChange={(e) => setSlug(e.target.value)}
           className={ADMIN_INPUT}
         />
+        <AdminField
+          label="Parent category"
+          className="sm:col-span-2"
+          help="Leave as a main category, or pick one to add this as a subcategory under it (e.g. Pantry › Spices)."
+        >
+          <ParentCategorySelect categories={categories} value={parentId} onChange={setParentId} />
+        </AdminField>
         <textarea
           placeholder="Short description shown on the homepage featured section"
           rows={2}
@@ -794,7 +905,7 @@ function ProductImageUploader({ images, onChange }: { images: string[]; onChange
 
 function CreateProductForm({ categories, onCreated }: { categories: Category[]; onCreated: () => void }) {
   const { authedFetch } = useAdminAuth();
-  const [categoryId, setCategoryId] = useState(categories[0]?.id ?? "");
+  const [categoryId, setCategoryId] = useState(categoriesInTreeOrder(categories)[0]?.category.id ?? "");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [priceUsd, setPriceUsd] = useState("");
@@ -808,6 +919,10 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(description)) {
+      setError("Please add a description.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -838,11 +953,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
           <option value="" disabled>
             Select category
           </option>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          <CategoryOptions categories={categories} />
         </select>
         <AdminField label="SKU" required help="Your own product code — must be unique.">
           <input required placeholder="e.g. RAGU-250" value={sku} onChange={(e) => setSku(e.target.value)} className={ADMIN_INPUT} />
@@ -850,9 +961,21 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
         <AdminField label="Product name" required className="sm:col-span-2" help="Shown to customers in the shop and cart.">
           <input required placeholder="e.g. Ragù Bolognese" value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
         </AdminField>
-        <AdminField label="Description" required className="sm:col-span-2" help="Shown on the product card in the marketplace.">
-          <textarea required rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={ADMIN_TEXTAREA} />
-        </AdminField>
+        <div className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+            Description<span className="ml-1 text-red-500">*</span>
+          </span>
+          <span className="text-xs font-normal text-slate-400">
+            Shown in the product&apos;s detail window in the marketplace. Use the toolbar for bold, italic, underline
+            and lists.
+          </span>
+          <RichTextEditor
+            value={description}
+            onChange={setDescription}
+            ariaLabel="Product description"
+            placeholder="Describe the product — ingredients, size, how to use it..."
+          />
+        </div>
         <AdminField label="Price (USD)" required help="What the customer pays per unit.">
           <input required type="number" min={0} step="0.01" placeholder="0.00" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
         </AdminField>
@@ -900,6 +1023,10 @@ function EditProductForm({
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (isRichTextEmpty(description)) {
+      setError("Please add a description.");
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
@@ -925,11 +1052,7 @@ function EditProductForm({
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
         <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
-          {categories.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
+          <CategoryOptions categories={categories} />
         </select>
         <input value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
         <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
@@ -942,7 +1065,9 @@ function EditProductForm({
           onChange={(e) => setWeightKg(e.target.value)}
           className={ADMIN_INPUT}
         />
-        <textarea rows={2} value={description} onChange={(e) => setDescription(e.target.value)} className={`${ADMIN_TEXTAREA} sm:col-span-2`} />
+        <div className="sm:col-span-2">
+          <RichTextEditor value={description} onChange={setDescription} ariaLabel="Product description" />
+        </div>
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <label className="flex items-center gap-2 text-sm text-slate-600">

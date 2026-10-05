@@ -152,7 +152,10 @@ export interface UpdateRoomInput {
   active?: boolean;
 }
 
-export type AvailabilitySource = "direct" | "airbnb" | "manual";
+// "booking_com" is for blocks imported from a Booking.com iCal feed — see
+// BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md §1. Until the backend tags
+// them separately they arrive as "airbnb".
+export type AvailabilitySource = "direct" | "airbnb" | "booking_com" | "manual";
 export type BlockStatus = "active" | "cancelled";
 
 export interface AvailabilityBlock {
@@ -257,6 +260,12 @@ export interface Category {
   description?: string | null;
   imageUrl?: string | null;
   featured?: boolean;
+  // Set when this is a subcategory — the id of its top-level parent. Only
+  // one level of nesting is supported (a subcategory can't have its own
+  // subcategories). Absent/null for top-level categories and for a
+  // not-yet-updated backend, which then simply reads as "no subcategories".
+  // Spec'd in BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md.
+  parentId?: string | null;
 }
 
 export interface StockLevel {
@@ -286,6 +295,27 @@ export interface Product {
   // contribution) until set. Spec'd in
   // BACKEND_CHANGES_PRICING_DISCOUNTS_SHIPPING.md.
   weightKg?: string | null;
+  // `description` may now hold a small whitelisted subset of HTML (bold,
+  // italic, underline, lists) — always render it via lib/rich-text.ts.
+  // Review summary; optional so a not-yet-updated backend still parses and
+  // the storefront just shows "no reviews yet".
+  averageRating?: number | null;
+  reviewCount?: number;
+}
+
+export interface ProductReview {
+  id: string;
+  productId: string;
+  authorName: string;
+  rating: number; // 1-5
+  comment: string;
+  createdAt: string;
+}
+
+export interface CreateProductReviewInput {
+  authorName: string;
+  rating: number;
+  comment: string;
 }
 
 export type OrderStatus = "pending" | "confirmed" | "packed" | "shipped" | "delivered" | "cancelled" | "returned";
@@ -500,6 +530,7 @@ export interface CreateCategoryInput {
   description?: string;
   imageUrl?: string;
   featured?: boolean;
+  parentId?: string | null;
 }
 
 export interface UpdateCategoryInput {
@@ -507,6 +538,8 @@ export interface UpdateCategoryInput {
   description?: string;
   imageUrl?: string;
   featured?: boolean;
+  // null moves a subcategory back to the top level.
+  parentId?: string | null;
 }
 
 // --- Leads ---

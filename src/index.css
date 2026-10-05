@@ -39,3 +39,46 @@ body {
   color: #64748b; /* slate-500 */
   opacity: 1;
 }
+
+/* Product descriptions — the whitelisted HTML from lib/rich-text.ts. No
+   typography plugin is installed and Tailwind's preflight strips list
+   bullets and bold weights' spacing, so the few allowed tags are styled
+   here, shared by the admin editor and the storefront. */
+.rich-text b,
+.rich-text strong {
+  font-weight: 700;
+}
+.rich-text i,
+.rich-text em {
+  font-style: italic;
+}
+.rich-text u {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.rich-text p,
+.rich-text div {
+  margin: 0;
+}
+.rich-text p + p {
+  margin-top: 0.6em;
+}
+.rich-text ul,
+.rich-text ol {
+  margin: 0.4em 0;
+  padding-left: 1.4em;
+}
+.rich-text ul {
+  list-style: disc;
+}
+.rich-text ol {
+  list-style: decimal;
+}
+.rich-text li + li {
+  margin-top: 0.2em;
+}
+.rich-text-editor:empty::before {
+  content: attr(data-placeholder);
+  color: #64748b; /* slate-500 */
+  pointer-events: none;
+}
