@@ -73,6 +73,11 @@ export function createProductReview(productId: string, input: CreateProductRevie
   });
 }
 
+// Admin moderation — super_admin / marketplace_manager only.
+export function deleteProductReview(fetcher: AuthedFetch, reviewId: string) {
+  return fetcher<void>(`/api/marketplace/catalog/reviews/${reviewId}`, { method: "DELETE" });
+}
+
 // Returns the created (pending-payment) order alongside a Stripe
 // clientSecret — mirrors createBooking. The checkout page shows a payment
 // form with this before the order is actually confirmed; see

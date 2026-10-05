@@ -50,6 +50,7 @@ const AdminDashboard = lazy(() => import("@/pages/admin/(protected)/dashboard/pa
 const AdminVillas = lazy(() => import("@/pages/admin/(protected)/villas/page"));
 const AdminVillaDetail = lazy(() => import("@/pages/admin/(protected)/villas/[propertyId]/page"));
 const AdminProducts = lazy(() => import("@/pages/admin/(protected)/marketplace/products/page"));
+const AdminReviews = lazy(() => import("@/pages/admin/(protected)/marketplace/reviews/page"));
 const AdminOrders = lazy(() => import("@/pages/admin/(protected)/marketplace/orders/page"));
 const AdminLeads = lazy(() => import("@/pages/admin/(protected)/leads/page"));
 const AdminBlog = lazy(() => import("@/pages/admin/(protected)/blog/page"));
@@ -154,6 +155,7 @@ export default function App() {
             <Route path="/admin/villas" element={<AdminVillas />} />
             <Route path="/admin/villas/:propertyId" element={<AdminVillaDetail />} />
             <Route path="/admin/marketplace/products" element={<AdminProducts />} />
+            <Route path="/admin/marketplace/reviews" element={<AdminReviews />} />
             <Route path="/admin/marketplace/orders" element={<AdminOrders />} />
             <Route path="/admin/leads" element={<AdminLeads />} />
             <Route path="/admin/blog" element={<AdminBlog />} />
