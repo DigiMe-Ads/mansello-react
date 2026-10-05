@@ -1,8 +1,8 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
 import { useState } from "react";
 import { usePropertyBooking } from "./booking-provider";
-import { formatMoney } from "@/lib/currency";
 
 const labelClass = "mb-1 block pl-1 text-xs font-semibold text-slate-500";
 
@@ -138,7 +138,7 @@ export function GuestDetailsForm({ showTransport = true }: { showTransport?: boo
                     Airport transfer
                     {transportPrice !== null && property && (
                       <span className="ml-2 font-normal text-slate-500">
-                        {formatMoney(transportPrice, property.currency)}, already included in your total
+                        <Money amount={transportPrice} currency={property.currency} />, already included in your total
                       </span>
                     )}
                   </p>

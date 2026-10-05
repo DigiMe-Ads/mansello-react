@@ -50,8 +50,10 @@ export interface Property {
   maxGuests: number;
   address: string;
   stripeAccountRef: StripeAccountRef;
-  airbnbIcalImportUrls: string[];
-  icalExportToken: string;
+  // Admin-only (sent only when the request carries an admin token — see
+  // getPropertiesAdmin). Absent on every public response.
+  airbnbIcalImportUrls?: string[];
+  icalExportToken?: string;
   createdAt: string;
   updatedAt: string;
   pricingTiers: PricingTier[];
@@ -153,8 +155,7 @@ export interface UpdateRoomInput {
 }
 
 // "booking_com" is for blocks imported from a Booking.com iCal feed — see
-// BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md §1. Until the backend tags
-// them separately they arrive as "airbnb".
+// BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md §1.
 export type AvailabilitySource = "direct" | "airbnb" | "booking_com" | "manual";
 export type BlockStatus = "active" | "cancelled";
 

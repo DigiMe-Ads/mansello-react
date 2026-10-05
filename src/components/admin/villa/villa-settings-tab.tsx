@@ -14,12 +14,14 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
   const [maxGuests, setMaxGuests] = useState(property.maxGuests);
   const [checkInTime, setCheckInTime] = useState(property.checkInTime);
   const [checkOutTime, setCheckOutTime] = useState(property.checkOutTime);
-  const [icalUrls, setIcalUrls] = useState(property.airbnbIcalImportUrls.join("\n"));
+  const [icalUrls, setIcalUrls] = useState((property.airbnbIcalImportUrls ?? []).join("\n"));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
 
-  const exportUrl = `${process.env.NEXT_PUBLIC_API_URL}/ical/${property.icalExportToken}.ics`;
+  const exportUrl = property.icalExportToken
+    ? `${process.env.NEXT_PUBLIC_API_URL}/ical/${property.icalExportToken}.ics`
+    : null;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -142,7 +144,14 @@ export function VillaSettingsTab({ property, onUpdated }: { property: Property; 
           Paste this into the &quot;Import Calendar&quot; field on Airbnb and Booking.com so our confirmed dates block
           those channels too.
         </p>
-        <code className="mt-3 block break-all rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">{exportUrl}</code>
+        {exportUrl ? (
+          <code className="mt-3 block break-all rounded-xl bg-slate-50 px-4 py-3 text-xs text-slate-600">{exportUrl}</code>
+        ) : (
+          <p className="mt-3 rounded-xl bg-amber-50 px-4 py-3 text-xs text-amber-800">
+            The export link isn&apos;t available — your admin session may lack access to this property. Reload, or sign
+            in again.
+          </p>
+        )}
       </div>
     </div>
   );

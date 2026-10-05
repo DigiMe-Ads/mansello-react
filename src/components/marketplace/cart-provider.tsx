@@ -27,6 +27,14 @@ interface CartState {
   clear: () => void;
 }
 
+// Mirrors the backend's order validation (integer quantity 1-99 per line).
+export const MAX_CART_QUANTITY = 99;
+
+function clampQuantity(quantity: number, maxStock: number | null): number {
+  const limit = Math.min(MAX_CART_QUANTITY, maxStock ?? MAX_CART_QUANTITY);
+  return Math.max(0, Math.min(Math.floor(quantity), limit));
+}
+
 const CartContext = createContext<CartState | null>(null);
 const STORAGE_KEY = "mansello_sri_lanka_cart";
 
@@ -64,8 +72,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const existing = prev.find((i) => i.productId === product.id);
 
       if (existing) {
-        const nextQuantity =
-          maxStock != null ? Math.min(existing.quantity + quantity, maxStock) : existing.quantity + quantity;
+        const nextQuantity = clampQuantity(existing.quantity + quantity, maxStock);
         return prev.map((i) => (i.productId === product.id ? { ...i, quantity: nextQuantity } : i));
       }
 
@@ -76,7 +83,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           name: product.name,
           priceUsd: Number(product.priceUsd),
           image: isRenderableImageSrc(product.images[0]) ? product.images[0] : null,
-          quantity: maxStock != null ? Math.min(quantity, maxStock) : quantity,
+          quantity: clampQuantity(quantity, maxStock),
           maxStock,
           unitWeightKg: Number(product.weightKg ?? 0),
         },
@@ -93,7 +100,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       if (quantity <= 0) return prev.filter((i) => i.productId !== productId);
       return prev.map((i) =>
         i.productId === productId
-          ? { ...i, quantity: i.maxStock != null ? Math.min(quantity, i.maxStock) : quantity }
+          ? { ...i, quantity: clampQuantity(quantity, i.maxStock) }
           : i
       );
     });

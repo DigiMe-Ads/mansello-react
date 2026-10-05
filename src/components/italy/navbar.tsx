@@ -6,6 +6,7 @@ import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import { useContent } from "@/components/content-provider";
 import { SiteSearch, type SearchablePage } from "@/components/site-search";
+import { CurrencySwitcher } from "@/components/currency-provider";
 
 const leftLinks = [
   { label: "Home", href: "/" },
@@ -32,7 +33,7 @@ export default function Navbar() {
     <header className="fixed top-0 left-1/2 z-50 w-[92%] max-w-6xl -translate-x-1/2">
       <div className="relative flex h-[90px] items-center justify-between rounded-[20px] bg-white px-8 shadow-lg backdrop-blur-sm sm:h-[100px] sm:px-12">
         {/* Left links */}
-        <nav className="hidden items-center gap-30 md:flex">
+        <nav className="hidden flex-1 items-center justify-between gap-4 pr-28 lg:flex">
           {leftLinks.map((link) => (
             <Link
               key={link.href}
@@ -45,12 +46,13 @@ export default function Navbar() {
         </nav>
 
         {/* Reserves space so the logo badge below has room on mobile */}
-        <div className="w-10 md:hidden" />
+        <div className="w-10 lg:hidden" />
 
-        {/* Right links + icons — wider gap than the left side since there's
-            only one link here (Contact) plus the search/menu icons, so it
-            needs to spread out further to match the left side's 3 links */}
-        <div className="hidden items-center gap-28 md:flex">
+        {/* Right links + icons. Both sides are flex-1 + justify-between with
+            padding toward the centre, so they spread evenly across their half
+            and always leave room for the logo badge, however many items each
+            side has (fixed gaps pushed items under the logo). */}
+        <div className="hidden flex-1 items-center justify-between gap-4 pl-28 lg:flex">
           {rightLinks.map((link) => (
             <Link
               key={link.href}
@@ -60,6 +62,7 @@ export default function Navbar() {
               {link.label}
             </Link>
           ))}
+          <CurrencySwitcher />
           <SiteSearch pages={searchablePages} showLabel />
           <button
             aria-label="Toggle menu"
@@ -74,7 +77,7 @@ export default function Navbar() {
         <button
           aria-label="Toggle menu"
           onClick={() => setMenuOpen((v) => !v)}
-          className="text-[#1F3D2E]/80 md:hidden"
+          className="text-[#1F3D2E]/80 lg:hidden"
         >
           {menuOpen ? <X size={22} /> : <Menu size={22} />}
         </button>
@@ -93,7 +96,8 @@ export default function Navbar() {
 
       {/* Mobile dropdown */}
       {menuOpen && (
-        <div className="mt-3 flex flex-col gap-1 rounded-[20px] bg-white/95 p-4 shadow-lg md:hidden">
+        <div className="mt-3 flex flex-col gap-1 rounded-[20px] bg-white/95 p-4 shadow-lg lg:hidden">
+          <CurrencySwitcher variant="mobile" />
           {[...leftLinks, ...rightLinks].map((link) => (
             <Link
               key={link.href}
@@ -107,12 +111,12 @@ export default function Navbar() {
         </div>
       )}
 
-      {/* Desktop menu overlay — always mounted (md+) so opacity/scale can
+      {/* Desktop menu overlay — always mounted (lg+) so opacity/scale can
           transition; hidden/inert while closed via pointer-events-none */}
       <div
         onClick={() => setMenuOpen(false)}
         aria-hidden={!menuOpen}
-        className={`fixed inset-0 z-40 hidden items-center justify-center bg-[#0B2B2B]/70 backdrop-blur-md transition-opacity duration-300 md:flex ${
+        className={`fixed inset-0 z-40 hidden items-center justify-center bg-[#0B2B2B]/70 backdrop-blur-md transition-opacity duration-300 lg:flex ${
           menuOpen ? "opacity-100" : "pointer-events-none opacity-0"
         }`}
       >

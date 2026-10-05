@@ -1,5 +1,7 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -8,8 +10,7 @@ import { BookingProvider, usePropertyBooking } from "./booking-provider";
 import { MonthGridView } from "./booking-calendar-view";
 import { buildMonthGrid, formatDisplayDate, nextMonth, todayKey } from "@/lib/date";
 import { computeStayTotal, estimateCheapestRoomsTotal, guestCountOptions, nightsBetween, totalRoomCapacity } from "@/lib/api/pricing";
-import { formatMoney } from "@/lib/currency";
-import { isRangeAvailable } from "@/lib/availability";
+import { isRangeAvailable, MAX_STAY_NIGHTS } from "@/lib/availability";
 
 const MAX_MONTH_OFFSET = 10;
 
@@ -63,7 +64,8 @@ function ReservationWidgetInner({ airbnbHref }: { airbnbHref: string }) {
         : computeStayTotal(property.pricingTiers, checkIn, checkOut, guests, 1)
       : null;
   const minNightsOk = !property || nights === 0 || nights >= property.minNights;
-  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk);
+  const maxNightsOk = nights <= MAX_STAY_NIGHTS;
+  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk && maxNightsOk);
 
   function handleReserve() {
     if (!checkIn || !checkOut) return;
@@ -152,14 +154,16 @@ function ReservationWidgetInner({ airbnbHref }: { airbnbHref: string }) {
       {stay ? (
         <p className="mt-3 text-sm font-semibold text-[#1B4B4F]">
           {hasRooms ? "From " : ""}
-          {formatMoney(stay.totalPrice, property.currency)} · {stay.nights} night{stay.nights > 1 ? "s" : ""}
+          <Money amount={stay.totalPrice} currency={property.currency} /> · {stay.nights} night{stay.nights > 1 ? "s" : ""}
         </p>
       ) : (
         checkIn &&
         checkOut &&
-        !minNightsOk && (
+        (!minNightsOk || !maxNightsOk) && (
           <p className="mt-3 text-xs text-red-600">
-            Minimum stay is {property.minNights} night{property.minNights > 1 ? "s" : ""}
+            {!minNightsOk
+              ? `Minimum stay is ${property.minNights} night${property.minNights > 1 ? "s" : ""}`
+              : `Maximum stay is ${MAX_STAY_NIGHTS} nights — please contact us for longer stays`}
           </p>
         )
       )}

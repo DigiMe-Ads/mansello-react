@@ -4,12 +4,21 @@ import { useRef, useState } from "react";
 import { FileText, UploadCloud, X } from "lucide-react";
 import { uploadGuestInfoFiles } from "@/lib/api/guest-info";
 
-function fileNameFromUrl(url: string): string {
+// The upload endpoint returns opaque references to private storage (object
+// keys like "guest-documents/<uuid>-passport.jpg"), not viewable URLs — they
+// are only shown as a file name here and passed back on submit. Handles a
+// full URL too, for older uploads.
+function fileNameFromUrl(ref: string): string {
+  let path = ref;
   try {
-    const path = new URL(url).pathname;
-    return decodeURIComponent(path.split("/").pop() || url);
+    path = new URL(ref).pathname;
   } catch {
-    return url;
+    // not a URL — a storage key
+  }
+  try {
+    return decodeURIComponent(path.split("/").pop() || ref);
+  } catch {
+    return path.split("/").pop() || ref;
   }
 }
 

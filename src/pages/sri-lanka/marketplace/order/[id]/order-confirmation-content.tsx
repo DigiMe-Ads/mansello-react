@@ -1,11 +1,12 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { getOrder } from "@/lib/api/marketplace";
-import { formatMoney } from "@/lib/currency";
 import type { Order } from "@/lib/api/types";
 import { useSeo } from "@/lib/seo/use-seo";
 import { PRIVATE_META } from "@/lib/seo/page-meta";
@@ -48,10 +49,14 @@ export default function OrderConfirmationContent({ orderId }: { orderId: string 
 
             {order && (
               <>
-                <h1 className="text-2xl font-bold text-[#8DC63F]">Thank you, {order.customerName}!</h1>
+                {/* The public order lookup returns only the first name and a
+                    masked phone (or neither) for privacy. */}
+                <h1 className="text-2xl font-bold text-[#8DC63F]">
+                  Thank you{order.customerName ? `, ${order.customerName}` : ""}!
+                </h1>
                 <p className="mt-3 text-sm text-slate-600">
                   Your payment was successful and your order is confirmed. We&apos;ll call{" "}
-                  {order.customerPhone} if we need anything before dispatching.
+                  {order.customerPhone || "you"} if we need anything before dispatching.
                 </p>
 
                 <div className="mt-6 flex flex-col gap-2 text-left text-sm text-slate-700">
@@ -60,16 +65,16 @@ export default function OrderConfirmationContent({ orderId }: { orderId: string 
                       <span>
                         {item.productNameSnapshot} × {item.quantity}
                       </span>
-                      <span>{formatMoney(item.lineTotal, "usd")}</span>
+                      <span><Money amount={item.lineTotal} currency="usd" charged /></span>
                     </div>
                   ))}
                   <div className="mt-2 flex justify-between border-t border-slate-200 pt-2">
                     <span>Shipping</span>
-                    <span>{formatMoney(order.shippingFee, "usd")}</span>
+                    <span><Money amount={order.shippingFee} currency="usd" charged /></span>
                   </div>
                   <div className="flex justify-between text-base font-bold text-[#153C4D]">
                     <span>Total Paid</span>
-                    <span>{formatMoney(order.total, "usd")}</span>
+                    <span><Money amount={order.total} currency="usd" charged /></span>
                   </div>
                 </div>
               </>

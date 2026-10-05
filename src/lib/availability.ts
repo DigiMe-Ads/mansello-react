@@ -37,6 +37,10 @@ export function buildBlockedDateSetForRooms(blocks: AvailabilityBlock[], _roomId
   return buildBlockedDateSet(blocks);
 }
 
+// Longest stay the backend accepts in one booking (POST /api/bookings);
+// longer requests are rejected with a 400. Kept in step with the backend.
+export const MAX_STAY_NIGHTS = 60;
+
 export function isRangeAvailable(blocked: Set<string>, checkIn: string, checkOut: string): boolean {
   let cursor = checkIn;
   while (cursor < checkOut) {

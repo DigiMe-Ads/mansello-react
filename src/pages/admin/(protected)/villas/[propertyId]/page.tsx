@@ -13,7 +13,7 @@ import { VillaRoomsTab } from "@/components/admin/villa/villa-rooms-tab";
 import { VillaOffersTab } from "@/components/admin/villa/villa-offers-tab";
 import { VillaTransportTab } from "@/components/admin/villa/villa-transport-tab";
 import { VillaSettingsTab } from "@/components/admin/villa/villa-settings-tab";
-import { getProperties } from "@/lib/api/properties";
+import { getPropertiesAdmin } from "@/lib/api/properties";
 import { getRooms, usesRoomModel } from "@/lib/api/rooms";
 import { ApiRequestError } from "@/lib/api/errors";
 import type { Property, Room } from "@/lib/api/types";
@@ -63,7 +63,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
   const [tab, setTab] = useState<Tab>("Bookings");
 
   const load = useCallback(() => {
-    getProperties()
+    getPropertiesAdmin(authedFetch)
       .then((props) => {
         const match = props.find((p) => p.id === propertyId);
         if (!match) {
@@ -73,7 +73,7 @@ function VillaDetailContent({ propertyId }: { propertyId: string }) {
         setProperty(match);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load property"));
-  }, [propertyId]);
+  }, [authedFetch, propertyId]);
 
   // Rooms are fetched from the dedicated `/rooms` endpoint (includes
   // inactive ones, needed so an old booking against a since-deactivated

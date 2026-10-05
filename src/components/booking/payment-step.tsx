@@ -1,11 +1,12 @@
 "use client";
 
+import { ConversionNotice, Money } from "@/components/currency-provider";
+
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { getStripePromise } from "@/lib/stripe";
 import { useCountdown } from "@/lib/hooks/use-countdown";
-import { formatMoney } from "@/lib/currency";
 import { usePropertyBooking } from "./booking-provider";
 
 function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
@@ -32,7 +33,13 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
     });
 
     if (stripeError) {
-      setError(stripeError.message ?? "Payment failed. Please try again.");
+      // The backend cancels the PaymentIntent when a hold expires, so a late
+      // attempt fails with this code — explain it instead of Stripe's text.
+      setError(
+        stripeError.code === "payment_intent_unexpected_state"
+          ? "Your hold on these dates has expired, so no payment was taken. Please start again."
+          : (stripeError.message ?? "Payment failed. Please try again.")
+      );
       setSubmitting(false);
       return;
     }
@@ -80,11 +87,11 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
           <div className="mt-4 rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
             <div className="flex items-center justify-between">
               <span>Airport transfer</span>
-              <span>{formatMoney(booking.transportPrice, booking.currency)}</span>
+              <span><Money amount={booking.transportPrice} currency={booking.currency} charged /></span>
             </div>
             <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-[#153C4D]">
               <span>Total</span>
-              <span>{formatMoney(booking.totalPrice, booking.currency)}</span>
+              <span><Money amount={booking.totalPrice} currency={booking.currency} charged /></span>
             </div>
           </div>
         )}
@@ -93,24 +100,26 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
         <div className="mt-4 rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
           <div className="flex items-center justify-between">
             <span>Accommodation</span>
-            <span>{formatMoney(booking.accommodationPrice!, booking.currency)}</span>
+            <span><Money amount={booking.accommodationPrice!} currency={booking.currency} charged /></span>
           </div>
           <div className="mt-1 flex items-center justify-between">
             <span>City tax</span>
-            <span>{formatMoney(booking.cityTax!, booking.currency)}</span>
+            <span><Money amount={booking.cityTax!} currency={booking.currency} charged /></span>
           </div>
           {booking.transportPrice != null && Number(booking.transportPrice) > 0 && (
             <div className="mt-1 flex items-center justify-between">
               <span>Airport transfer</span>
-              <span>{formatMoney(booking.transportPrice, booking.currency)}</span>
+              <span><Money amount={booking.transportPrice} currency={booking.currency} charged /></span>
             </div>
           )}
           <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-[#153C4D]">
             <span>Total</span>
-            <span>{formatMoney(booking.totalPrice, booking.currency)}</span>
+            <span><Money amount={booking.totalPrice} currency={booking.currency} charged /></span>
           </div>
         </div>
       )}
+
+      {booking && <ConversionNotice currency={booking.currency} className="mt-3" />}
 
       <div className="mt-4">
         <PaymentElement />

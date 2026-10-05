@@ -1,5 +1,6 @@
 "use client";
 
+import { ConversionNotice, Money } from "@/components/currency-provider";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -16,8 +17,7 @@ import {
   roomOptionsForGuestCount,
   totalRoomCapacity,
 } from "@/lib/api/pricing";
-import { formatMoney } from "@/lib/currency";
-import { isRangeAvailable, isValidCheckOut } from "@/lib/availability";
+import { isRangeAvailable, isValidCheckOut, MAX_STAY_NIGHTS } from "@/lib/availability";
 import { isRenderableImageSrc } from "@/lib/image";
 
 // Stripe's SDK is only needed once a guest reaches the payment step, so it's
@@ -223,6 +223,7 @@ export function BookingCalendarView({
           )
       : null;
   const minNightsOk = !property || nights === 0 || nights >= property.minNights;
+  const maxNightsOk = nights <= MAX_STAY_NIGHTS;
 
   const selectedCapacity = hasRooms
     ? (property?.rooms ?? []).filter((r) => selectedRoomIds.includes(r.id)).reduce((sum, r) => sum + r.capacity, 0)
@@ -231,7 +232,7 @@ export function BookingCalendarView({
     !checkIn || !checkOut || selectedRoomIds.every((id) => isRangeAvailable(roomBlockedDates.get(id) ?? new Set(), checkIn, checkOut));
   const roomsValid = !hasRooms || (selectedRoomIds.length > 0 && selectedCapacity >= guests && selectedRoomsAvailable);
 
-  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk && roomsValid);
+  const canReserve = Boolean(checkIn && checkOut && stay && minNightsOk && maxNightsOk && roomsValid);
 
   if (loading) {
     return (
@@ -289,7 +290,7 @@ export function BookingCalendarView({
                   {stay.discountAmount > 0 && (
                     <div className="flex items-center justify-end gap-2">
                       <p className="text-sm font-medium text-slate-400 line-through">
-                        {formatMoney(stay.grandTotal + stay.discountAmount, property.currency)}
+                        <Money amount={stay.grandTotal + stay.discountAmount} currency={property.currency} />
                       </p>
                       {stay.discountPercentApplied !== undefined && (
                         <span className="rounded-full bg-[#F5A623] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
@@ -303,30 +304,31 @@ export function BookingCalendarView({
                       stay.discountAmount > 0 ? "text-[#F5A623]" : "text-[#153C4D]"
                     }`}
                   >
-                    {formatMoney(stay.grandTotal, property.currency)}
+                    <Money amount={stay.grandTotal} currency={property.currency} charged />
                   </p>
                   <p className="mt-1 text-right text-sm font-medium text-[#153C4D]">
-                    {stay.nights} night{stay.nights > 1 ? "s" : ""} · {formatMoney(stay.pricePerNight, property.currency)}
+                    {stay.nights} night{stay.nights > 1 ? "s" : ""} · <Money amount={stay.pricePerNight} currency={property.currency} />
                     /night
                   </p>
+                  <ConversionNotice currency={property.currency} className="mt-1 text-right" />
                   {/* Itemised here too, so the headline total above is never
                       an unexplained jump when the add-on is ticked. */}
                   {stay.transportPrice > 0 && (
                     <p className="mt-1 text-right text-xs text-slate-500">
-                      Includes airport transfer: {formatMoney(stay.transportPrice, property.currency)}
+                      Includes airport transfer: <Money amount={stay.transportPrice} currency={property.currency} />
                     </p>
                   )}
                   {property.cityTaxEnabled && (
                     <div className="mt-2 text-right text-xs text-slate-500">
-                      <p>Accommodation: {formatMoney(stay.accommodationPrice, property.currency)}</p>
+                      <p>Accommodation: <Money amount={stay.accommodationPrice} currency={property.currency} /></p>
                       <p>
-                        City tax: {formatMoney(stay.cityTax, property.currency)}
+                        City tax: <Money amount={stay.cityTax} currency={property.currency} />
                         {stay.cityTaxDetail && stay.cityTaxDetail.ratePerPersonPerNight !== null && (
                           <>
                             {" "}
                             ({stay.cityTaxDetail.taxableGuests} guest{stay.cityTaxDetail.taxableGuests === 1 ? "" : "s"} ×{" "}
                             {stay.cityTaxDetail.taxedNights} night{stay.cityTaxDetail.taxedNights === 1 ? "" : "s"} ×{" "}
-                            {formatMoney(stay.cityTaxDetail.ratePerPersonPerNight, property.currency)}
+                            <Money amount={stay.cityTaxDetail.ratePerPersonPerNight} currency={property.currency} />
                             {stay.nights > stay.cityTaxDetail.taxedNights && ", capped at 5 nights"})
                           </>
                         )}
@@ -342,6 +344,11 @@ export function BookingCalendarView({
               {checkIn && checkOut && !minNightsOk && (
                 <p className="mt-1 text-right text-xs text-red-600">
                   Minimum stay is {property.minNights} night{property.minNights > 1 ? "s" : ""}
+                </p>
+              )}
+              {checkIn && checkOut && !maxNightsOk && (
+                <p className="mt-1 text-right text-xs text-red-600">
+                  Maximum stay is {MAX_STAY_NIGHTS} nights — please contact us for longer stays
                 </p>
               )}
 
@@ -511,7 +518,7 @@ export function BookingCalendarView({
                           </div>
                           <div className="text-right">
                             <p className="text-sm font-semibold text-[#153C4D]">
-                              {formatMoney(Number(room.pricePerNight), property.currency)}
+                              <Money amount={Number(room.pricePerNight)} currency={property.currency} />
                             </p>
                             <p className="text-[10px] text-slate-400">/night</p>
                             {blocked && <p className="text-[10px] font-semibold text-red-500">Booked</p>}
@@ -561,7 +568,7 @@ export function BookingCalendarView({
                     </span>
                     <span className="text-right">
                       <span className="block text-sm font-semibold text-[#153C4D]">
-                        {formatMoney(transportPrice, property.currency)}
+                        <Money amount={transportPrice} currency={property.currency} />
                       </span>
                       <span className="block text-[10px] text-slate-400">total</span>
                     </span>

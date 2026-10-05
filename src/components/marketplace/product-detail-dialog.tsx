@@ -1,14 +1,15 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Link } from "react-router-dom";
 import { Minus, Plus, ShoppingCart, Star, X } from "lucide-react";
-import { useCart } from "@/components/marketplace/cart-provider";
+import { MAX_CART_QUANTITY, useCart } from "@/components/marketplace/cart-provider";
 import { createProductReview, getProductReviews } from "@/lib/api/marketplace";
 import { ApiRequestError } from "@/lib/api/errors";
 import { categoryPath } from "@/lib/category-tree";
-import { formatMoney } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 import { isRenderableImageSrc } from "@/lib/image";
 import { sanitizeRichText } from "@/lib/rich-text";
@@ -48,7 +49,7 @@ export function ProductDetailDialog({
   const { items, addItem } = useCart();
   const { stock, soldOut, low } = stockStatus(product);
   const inCart = items.find((i) => i.productId === product.id)?.quantity ?? 0;
-  const canAdd = Math.max(0, stock - inCart);
+  const canAdd = Math.max(0, Math.min(stock, MAX_CART_QUANTITY) - inCart);
 
   const images = product.images.filter((src) => isRenderableImageSrc(src));
   const [activeImage, setActiveImage] = useState(0);
@@ -172,7 +173,7 @@ export function ProductDetailDialog({
               </button>
             )}
 
-            <p className="mt-4 text-2xl font-bold text-[#153C4D]">{formatMoney(product.priceUsd, "usd")}</p>
+            <p className="mt-4 text-2xl font-bold text-[#153C4D]"><Money amount={product.priceUsd} currency="usd" /></p>
 
             <div className="mt-3">
               {soldOut ? (

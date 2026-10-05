@@ -1,12 +1,13 @@
 "use client";
 
+import { ConversionNotice, Money } from "@/components/currency-provider";
+
 import Image from "next/image";
 import Link from "next/link";
 import { Minus, Plus, Trash2 } from "lucide-react";
 import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
-import { formatMoney } from "@/lib/currency";
 import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
 import { useSeo } from "@/lib/seo/use-seo";
 import { PAGE_META } from "@/lib/seo/page-meta";
@@ -56,7 +57,7 @@ export default function CartPage() {
                       </div>
                       <div className="min-w-[140px] flex-1">
                         <p className="text-sm font-bold text-[#153C4D]">{item.name}</p>
-                        <p className="mt-1 text-sm text-slate-500">{formatMoney(item.priceUsd, "usd")} each</p>
+                        <p className="mt-1 text-sm text-slate-500"><Money amount={item.priceUsd} currency="usd" /> each</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
@@ -79,7 +80,7 @@ export default function CartPage() {
                         </button>
                       </div>
                       <p className="w-20 text-right text-sm font-bold text-[#153C4D]">
-                        {formatMoney(item.priceUsd * item.quantity, "usd")}
+                        <Money amount={item.priceUsd * item.quantity} currency="usd" />
                       </p>
                       <button
                         type="button"
@@ -96,16 +97,17 @@ export default function CartPage() {
                 <div className="mt-8 rounded-2xl bg-[#F7F5F0] p-6">
                   <div className="flex justify-between text-sm text-slate-600">
                     <span>Subtotal</span>
-                    <span>{formatMoney(subtotal, "usd")}</span>
+                    <span><Money amount={subtotal} currency="usd" /></span>
                   </div>
                   <div className="mt-2 flex justify-between text-sm text-slate-600">
                     <span>Shipping</span>
-                    <span>{resolved ? formatMoney(shippingFee, "usd") : "—"}</span>
+                    <span>{resolved ? <Money amount={shippingFee} currency="usd" /> : "—"}</span>
                   </div>
                   <div className="mt-3 flex justify-between border-t border-slate-200 pt-3 text-base font-bold text-[#153C4D]">
                     <span>Total</span>
-                    <span>{resolved ? formatMoney(total, "usd") : "—"}</span>
+                    <span>{resolved ? <Money amount={total} currency="usd" charged /> : "—"}</span>
                   </div>
+                  <ConversionNotice currency="usd" className="mt-3" />
                 </div>
 
                 <Link

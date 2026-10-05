@@ -1,11 +1,12 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import Image from "next/image";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
 import { useCart } from "@/components/marketplace/cart-provider";
 import { StarRating, stockStatus } from "@/components/marketplace/product-detail-dialog";
 import { categoryIdsForFilter, rootCategoryOf, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
-import { formatMoney } from "@/lib/currency";
 import { isRenderableImageSrc } from "@/lib/image";
 import type { Product } from "@/lib/api/types";
 
@@ -52,7 +53,7 @@ function ProductCard({ product }: { product: Product }) {
               <StarRating value={product.averageRating ?? 0} size={12} />({product.reviewCount})
             </div>
           )}
-          <p className="mt-1 text-sm text-slate-500">{formatMoney(product.priceUsd, "usd")}</p>
+          <p className="mt-1 text-sm text-slate-500"><Money amount={product.priceUsd} currency="usd" /></p>
         </div>
       </button>
       <div className="mt-auto px-3 pb-4">

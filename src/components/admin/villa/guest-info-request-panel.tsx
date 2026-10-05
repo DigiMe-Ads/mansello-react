@@ -61,6 +61,14 @@ export function GuestInfoRequestPanel({ bookingId }: { bookingId: string }) {
     load();
   }, [load]);
 
+  // Guest document links are short-lived signed URLs (~15 min) now that
+  // documents live in a private bucket. Refresh them while the panel stays
+  // open so a link clicked later still works.
+  useEffect(() => {
+    const id = window.setInterval(load, 10 * 60 * 1000);
+    return () => window.clearInterval(id);
+  }, [load]);
+
   async function handleSend() {
     setSending(true);
     setError(null);

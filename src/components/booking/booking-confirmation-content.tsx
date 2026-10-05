@@ -1,9 +1,9 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { usePollBookingStatus } from "@/lib/hooks/use-poll-booking-status";
-import { formatMoney } from "@/lib/currency";
 import { formatDisplayDate } from "@/lib/date";
 
 export function BookingConfirmationContent({ homeHref }: { homeHref: string }) {
@@ -34,7 +34,8 @@ export function BookingConfirmationContent({ homeHref }: { homeHref: string }) {
           <>
             <h1 className="text-2xl font-bold text-[#8DC63F]">Booking Confirmed!</h1>
             <p className="mt-3 text-sm text-slate-600">
-              A confirmation has been sent to {booking.guestEmail}.
+              {/* The public booking lookup may omit or mask the email (privacy). */}
+              A confirmation has been sent to {booking.guestEmail || "your email address"}.
             </p>
             <div className="mt-6 rounded-2xl bg-[#F7F5F0] p-6 text-left text-sm text-slate-700">
               <p>
@@ -50,15 +51,15 @@ export function BookingConfirmationContent({ homeHref }: { homeHref: string }) {
                 <>
                   <p className="mt-1">
                     <span className="font-semibold">Accommodation:</span>{" "}
-                    {formatMoney(booking.accommodationPrice!, booking.currency)}
+                    <Money amount={booking.accommodationPrice!} currency={booking.currency} charged />
                   </p>
                   <p className="mt-1">
-                    <span className="font-semibold">City tax:</span> {formatMoney(booking.cityTax!, booking.currency)}
+                    <span className="font-semibold">City tax:</span> <Money amount={booking.cityTax!} currency={booking.currency} charged />
                   </p>
                 </>
               )}
               <p className="mt-1">
-                <span className="font-semibold">Total paid:</span> {formatMoney(booking.totalPrice, booking.currency)}
+                <span className="font-semibold">Total paid:</span> <Money amount={booking.totalPrice} currency={booking.currency} charged />
               </p>
             </div>
           </>

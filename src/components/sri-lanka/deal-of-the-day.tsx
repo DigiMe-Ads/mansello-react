@@ -1,10 +1,11 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { ChevronDown, ChevronUp } from "lucide-react";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
-import { formatMoney } from "@/lib/currency";
 import { isRenderableImageSrc } from "@/lib/image";
 
 // How many of the catalog's products show up in the thumbnail rail here —
@@ -146,7 +147,7 @@ export default function DealOfTheDay() {
               <h3 className="mt-4 text-2xl font-extrabold uppercase tracking-wide text-[#153C4D]">
                 {activeProduct.name}
               </h3>
-              <p className="mt-2 text-sm text-slate-500">{formatMoney(activeProduct.priceUsd, "usd")}</p>
+              <p className="mt-2 text-sm text-slate-500"><Money amount={activeProduct.priceUsd} currency="usd" /></p>
               <button
                 type="button"
                 onClick={() => openProduct(activeProduct)}

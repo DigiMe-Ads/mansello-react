@@ -1,8 +1,9 @@
 "use client";
 
+import { Money } from "@/components/currency-provider";
+
 import { usePropertyBooking } from "@/components/booking/booking-provider";
 import { RoomImageSlider } from "@/components/sri-lanka/room-image-slider";
-import { formatMoney } from "@/lib/currency";
 
 const highlights = [
   "Free Wi-Fi",
@@ -63,7 +64,7 @@ export default function RoomPricing() {
                         {room.subtitle} · Sleeps {room.capacity}
                       </p>
                       <p className="mt-3 text-sm font-semibold text-[#153C4D]">
-                        {formatMoney(Number(room.pricePerNight), property!.currency)}{" "}
+                        <Money amount={Number(room.pricePerNight)} currency={property!.currency} />{" "}
                         <span className="text-xs font-normal text-slate-400">/ night</span>
                       </p>
                     </div>

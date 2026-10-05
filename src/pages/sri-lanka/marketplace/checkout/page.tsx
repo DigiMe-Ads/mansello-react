@@ -1,5 +1,8 @@
 "use client";
 
+import { ConversionNotice, Money } from "@/components/currency-provider";
+import { formatMoney } from "@/lib/currency";
+
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import PageHero from "@/components/page-hero";
@@ -8,7 +11,6 @@ import { useCart } from "@/components/marketplace/cart-provider";
 import { CheckoutPaymentStep } from "@/components/marketplace/checkout-payment-step";
 import { createOrder } from "@/lib/api/marketplace";
 import { ApiRequestError, isValidationError } from "@/lib/api/errors";
-import { formatMoney } from "@/lib/currency";
 import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
 import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
 import type { CreateOrderResponse, ShippingRate } from "@/lib/api/types";
@@ -16,6 +18,12 @@ import { useSeo } from "@/lib/seo/use-seo";
 import { PAGE_META } from "@/lib/seo/page-meta";
 
 export default function CheckoutPage() {
+  // Every hook must run before the empty-cart early return below. The cart
+  // hydrates from localStorage after the first render, so the first render
+  // takes that early return and the next one doesn't — a hook called after
+  // it (as useSeo used to be) changes the hook count between renders and
+  // React crashes the page to blank (minified error #310).
+  useSeo(PAGE_META.marketplaceCheckout);
   const { items, subtotal, totalWeightKg, clear } = useCart();
 
   const [customerName, setCustomerName] = useState("");
@@ -103,8 +111,6 @@ export default function CheckoutPage() {
       </>
     );
   }
-
-  useSeo(PAGE_META.marketplaceCheckout);
 
   return (
     <>
@@ -219,18 +225,19 @@ export default function CheckoutPage() {
                     <span>
                       {item.name} × {item.quantity}
                     </span>
-                    <span>{formatMoney(item.priceUsd * item.quantity, "usd")}</span>
+                    <span><Money amount={item.priceUsd * item.quantity} currency="usd" /></span>
                   </div>
                 ))}
               </div>
               <div className="mt-4 flex justify-between border-t border-slate-200 pt-3 text-sm text-slate-600">
                 <span>Shipping</span>
-                <span>{formatMoney(shippingFee, "usd")}</span>
+                <span><Money amount={shippingFee} currency="usd" /></span>
               </div>
               <div className="mt-2 flex justify-between text-base font-bold text-[#153C4D]">
                 <span>Total</span>
-                <span>{formatMoney(total, "usd")}</span>
+                <span><Money amount={total} currency="usd" charged /></span>
               </div>
+              <ConversionNotice currency="usd" className="mt-3" />
             </div>
           </div>
         </section>

@@ -43,7 +43,13 @@ function PaymentForm({
     });
 
     if (stripeError) {
-      setError(stripeError.message ?? "Payment failed. Please try again.");
+      // The backend cancels the PaymentIntent when a hold expires, so a late
+      // attempt fails with this code — explain it instead of Stripe's text.
+      setError(
+        stripeError.code === "payment_intent_unexpected_state"
+          ? "This order has expired, so no payment was taken. Please go back to your cart and check out again."
+          : (stripeError.message ?? "Payment failed. Please try again.")
+      );
       setSubmitting(false);
       return;
     }

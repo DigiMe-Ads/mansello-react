@@ -86,7 +86,8 @@ Options -Indexes
 # Security headers.
 #
 # The CSP origins are derived from what the app actually loads: Stripe
-# (src/lib/stripe.ts), the backend API (VITE_API_URL), Google Fonts
+# (src/lib/stripe.ts), the backend API (VITE_API_URL), the display-currency
+# exchange rates (open.er-api.com, currency-provider.tsx), Google Fonts
 # (index.html), and the Google Maps embed on both contact pages.
 #
 # Deliberate choices, do not "tighten" without reading these:
@@ -99,6 +100,10 @@ Options -Indexes
 #   - img-src https:: blog covers and product images are admin-entered URLs.
 #     Narrow this to your CDN host once that is fixed.
 #
+# upgrade-insecure-requests is NOT in the list below: browsers ignore it in a
+# Report-Only policy (and warn on every page). Hostinger already sends it as
+# its own enforced Content-Security-Policy header.
+#
 # CSP ships as Report-Only first. Watch the console on /sri-lanka/marketplace
 # /checkout and /admin/heatmap, then rename to Content-Security-Policy.
 # ---------------------------------------------------------------------------
@@ -107,8 +112,12 @@ Options -Indexes
   Header always set X-Frame-Options "SAMEORIGIN"
   Header always set Referrer-Policy "strict-origin-when-cross-origin"
   Header always set Cross-Origin-Opener-Policy "same-origin"
-  Header always set Permissions-Policy "geolocation=(), microphone=(), camera=(), payment=(self \"https://js.stripe.com\"), fullscreen=(self \"https://www.google.com\")"
+  # Single-quoted on purpose: inside a double-quoted Apache argument the \"
+  # escapes were sent to browsers literally (payment=(self \"https://...\")),
+  # which is invalid structured-header syntax — Chrome rejected the whole
+  # header ("Parse of permissions policy failed"), so none of it applied.
+  Header always set Permissions-Policy 'geolocation=(), microphone=(), camera=(), payment=(self "https://js.stripe.com"), fullscreen=(self "https://www.google.com")'
   Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains" "expr=%{HTTPS} == 'on'"
 
-  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://mansello-backend-production.up.railway.app https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'; upgrade-insecure-requests"
+  Header always set Content-Security-Policy-Report-Only "default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: blob: https:; connect-src 'self' https://mansello-backend-production.up.railway.app https://open.er-api.com https://api.stripe.com https://m.stripe.network; frame-src 'self' https://js.stripe.com https://hooks.stripe.com https://www.google.com; frame-ancestors 'self'; base-uri 'self'; form-action 'self'; object-src 'none'"
 </IfModule>

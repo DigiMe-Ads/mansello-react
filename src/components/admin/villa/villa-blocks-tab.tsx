@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT } from "@/components/admin/input-styles";
-import { createManualBlock, getAvailability, releaseBlock } from "@/lib/api/availability";
+import { createManualBlock, getAvailabilityAdmin, releaseBlock } from "@/lib/api/availability";
 import { ApiRequestError } from "@/lib/api/errors";
 import { addDaysToKey, formatDisplayDate, todayKey } from "@/lib/date";
 import type { AvailabilityBlock, Room } from "@/lib/api/types";
@@ -21,15 +21,6 @@ const SOURCE_COLORS: Record<string, string> = {
   booking_com: "bg-blue-100 text-blue-700",
   manual: "bg-slate-200 text-slate-700",
 };
-
-// The backend's iCal import tags every imported feed as "airbnb", whatever
-// channel it came from. The event UID still says where it really came from
-// (Booking.com UIDs end "@booking.com"), so label from that until the
-// backend sets source "booking_com" itself.
-function displaySource(block: AvailabilityBlock): string {
-  if (block.source === "airbnb" && block.externalUid?.toLowerCase().endsWith("@booking.com")) return "booking_com";
-  return block.source;
-}
 
 // Blocks are stored half-open, [startDate, endDate): endDate is the first
 // day that is free again (a booking's check-out day). That's natural for
@@ -86,11 +77,11 @@ export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string;
     setError(null);
     const from = todayKey();
     const to = addDaysToKey(from, 365);
-    getAvailability(propertyId, from, to)
+    getAvailabilityAdmin(authedFetch, propertyId, from, to)
       .then((result) => setBlocks(result.sort((a, b) => a.startDate.localeCompare(b.startDate))))
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load availability"))
       .finally(() => setLoading(false));
-  }, [propertyId]);
+  }, [authedFetch, propertyId]);
 
   useEffect(() => {
     // Standard fetch-on-mount: `load` itself synchronously flips
@@ -140,8 +131,8 @@ export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string;
               {blocks.map((block) => (
                 <tr key={block.id}>
                   <td className="border-t border-slate-100 px-4 py-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[displaySource(block)]}`}>
-                      {SOURCE_LABELS[displaySource(block)]}
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[block.source]}`}>
+                      {SOURCE_LABELS[block.source]}
                     </span>
                   </td>
                   {rooms.length > 0 && (
