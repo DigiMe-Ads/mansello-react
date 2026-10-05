@@ -22,6 +22,15 @@ const SOURCE_COLORS: Record<string, string> = {
   manual: "bg-slate-200 text-slate-700",
 };
 
+// The backend's iCal import tags every imported feed as "airbnb", whatever
+// channel it came from. The event UID still says where it really came from
+// (Booking.com UIDs end "@booking.com"), so label from that until the
+// backend sets source "booking_com" itself.
+function displaySource(block: AvailabilityBlock): string {
+  if (block.source === "airbnb" && block.externalUid?.toLowerCase().endsWith("@booking.com")) return "booking_com";
+  return block.source;
+}
+
 // Blocks are stored half-open, [startDate, endDate): endDate is the first
 // day that is free again (a booking's check-out day). That's natural for
 // bookings, but not for an admin blocking "the 15th", who expects to enter
@@ -131,8 +140,8 @@ export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string;
               {blocks.map((block) => (
                 <tr key={block.id}>
                   <td className="border-t border-slate-100 px-4 py-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[block.source]}`}>
-                      {SOURCE_LABELS[block.source]}
+                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[displaySource(block)]}`}>
+                      {SOURCE_LABELS[displaySource(block)]}
                     </span>
                   </td>
                   {rooms.length > 0 && (

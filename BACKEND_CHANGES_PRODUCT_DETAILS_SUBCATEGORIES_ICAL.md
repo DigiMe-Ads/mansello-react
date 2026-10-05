@@ -7,7 +7,7 @@ Nothing breaks while you work through the list.
 
 | # | Area | Backend work | Priority |
 |---|---|---|---|
-| 1 | Booking.com iCal import | Find out why Booking.com feeds aren't imported, and fix it | **High (live bug)** |
+| 1 | Booking.com iCal import | Imports work but are tagged `airbnb`; tag them `booking_com`, check the export doesn't echo | Medium |
 | 2 | Manual availability blocks | Reject zero-length blocks, clean up existing ones | Medium |
 | 3 | Product descriptions | Accept and sanitize a small HTML subset | Medium |
 | 4 | Subcategories | `Category.parentId` plus validation | Medium |
@@ -16,94 +16,45 @@ Nothing breaks while you work through the list.
 
 ---
 
-## 1. Booking.com iCal feed not being imported (live bug)
+## 1. Booking.com iCal blocks are imported but labelled "Airbnb"
 
-### Report
+### Finding (updated 2026-10-05)
 
-The client added two import URLs to a villa property
-(Villa admin → Settings → "Calendar Import URLs"):
+**The import works.** The Booking.com feed is being fetched and its dates are
+blocked. On The Nest Bologna, the Calendar & Blocks tab shows Oct 9→10,
+Oct 13→14, Oct 30→31, Nov 12→13, Nov 21→22, Dec 4→6 2026, Mar 16→22 2027 and
+others. Those ranges appear only in the Booking.com feed, not in Airbnb's.
 
+The actual bug is that **every imported block is stored with
+`source = 'airbnb'`, whichever feed it came from**, so the admin shows
+Booking.com bookings as "Airbnb". The block's `externalUid` still carries the
+origin (`…@booking.com` vs `…@airbnb.com`):
+
+```sql
+select source, split_part(external_uid, '@', 2) as uid_domain, count(*)
+from availability_blocks
+where external_uid is not null
+group by 1, 2;
+-- expect today: airbnb | booking.com | N   <- should be booking_com
 ```
-https://www.airbnb.com/calendar/ical/1695778052767952475.ics?t=…
-https://ical.booking.com/v1/export?t=…
-```
 
-Airbnb blocks show up. Booking.com blocks don't.
+**Frontend stopgap (done):** the admin labels a block "Booking.com" when
+`source` is `airbnb` but `externalUid` ends with `@booking.com`. This
+relies on the availability endpoint keeping `externalUid` in its response, so
+please don't remove it.
 
-### What we've ruled out from the frontend side
-
-We fetched the Booking.com URL directly on 2026-10-05. **The feed itself is fine:**
-
-- `HTTP 200`, `content-type: text/calendar`, ~3.5 KB. It responds the same with
-  or without a `User-Agent` header.
-- 15 `VEVENT`s, all with `DTSTART;VALUE=DATE` / `DTEND;VALUE=DATE` (exclusive
-  end, RFC 5545). Both one-night and multi-night ranges appear.
-- Sample event:
-
-  ```
-  BEGIN:VEVENT
-  DTSTAMP:20261005T020720Z
-  DTSTART;VALUE=DATE:20261009
-  DTEND;VALUE=DATE:20261010
-  UID:924faeb45e5bfc6b92a26b7bd47cbb3c@booking.com
-  SUMMARY:CLOSED - Not available
-  ORGANIZER:mailto:noreply@booking.com
-  END:VEVENT
-  ```
-
-- For comparison, Airbnb's events use `SUMMARY:Reserved`, have a `DESCRIPTION`,
-  and have UIDs ending `@airbnb.com`.
-
-So the problem is in our import job. Booking.com's feed differs from Airbnb's
-in a few specific ways, and each one could trip an Airbnb-shaped importer.
-
-### Likely causes (check in this order)
-
-1. **The stored URL list.** Until today the admin form split the textarea
-   on newlines only. If the client pasted both links on one line, or
-   separated them with a space or comma, they were saved as **one** string,
-   and that fetch fails. Check the DB:
-
-   ```sql
-   select id, name, airbnb_ical_import_urls from properties;
-   ```
-
-   If you see a single element containing both URLs, that's the bug. The
-   frontend now splits on whitespace and commas, so re-saving the settings
-   form fixes it. Please also split defensively on the backend (any
-   whitespace or comma) before fetching.
-
-2. **Host / URL allow-list.** Check for any validation that only accepts
-   `airbnb.com`, or requires the URL to end in `.ics`. The Booking.com URL
-   is `https://ical.booking.com/v1/export?t=…`, with no `.ics` extension.
-
-3. **Event filtering on `SUMMARY`.** If the importer only keeps events whose
-   summary is `Reserved` or `Airbnb (Not available)`, every Booking.com event
-   (`CLOSED - Not available`) is dropped. **Don't filter on `SUMMARY` at all.**
-   Every `VEVENT` in an OTA export is unavailable time. Only skip
-   `STATUS:CANCELLED`.
-
-4. **Source detection / UID handling.** If the job derives `source` or
-   de-duplicates by assuming `@airbnb.com` UIDs, it may discard the rest.
-   Key upserts on `(propertyId, externalUid)` without assuming a domain.
-
-5. **One-night trimming.** If the "subtract one day from imported DTEND"
-   change from `BACKEND_CHANGES_ICAL_MINUS_ONE_DAY.md` was shipped **without**
-   the one-night guard in its §5, every one-night event becomes zero-length and
-   blocks nothing. Several of this feed's events are one-night. (This would
-   affect Airbnb one-night stays too, so it's less likely to be *the* cause
-   here, but please verify.)
-
-6. **Swallowed errors.** Make sure a failure on one URL is logged with the
-   URL host and the error, and doesn't abort the remaining URLs.
+Feed facts, for reference (fetched 2026-10-05): `HTTP 200`,
+`text/calendar`, `DTSTART;VALUE=DATE` / `DTEND;VALUE=DATE` (exclusive end),
+`SUMMARY:CLOSED - Not available` on every event, UIDs ending `@booking.com`,
+no `STATUS` or `DESCRIPTION`. Airbnb's events use `SUMMARY:Reserved`.
 
 ### Required changes
 
 - **Tag the source.** Add `booking_com` to the `AvailabilitySource` enum, and
   set it when the feed host is `ical.booking.com` or the UID ends in
   `@booking.com`. The admin "Calendar & Blocks" tab already has a blue
-  "Booking.com" label for it. Until then, these blocks show under the
-  "Airbnb" label, which is acceptable as a stopgap. Anything else
+  "Booking.com" label for it. Backfill existing rows too (see Acceptance).
+  Anything else
   unrecognised can stay `airbnb` or get a generic `ical`. Tell us if you add
   `ical` and we'll add a label.
 - **Treat the import field as channel-agnostic.** It's still named
@@ -121,7 +72,9 @@ in a few specific ways, and each one could trip an Airbnb-shaped importer.
 
 ### Acceptance
 
-After a sync, these Booking.com dates are blocked for that
+After a sync (and a one-off backfill:
+`update availability_blocks set source = 'booking_com' where source = 'airbnb' and external_uid ilike '%@booking.com';`),
+these Booking.com dates are blocked for that
 property: 9 Oct 2026, 13 Oct 2026, 30 Oct 2026, 12 Nov 2026 (one night each),
 and the multi-night ranges later in the feed. They appear in Villa admin →
 Calendar & Blocks with source "Booking.com", and a direct booking for any of
@@ -393,9 +346,8 @@ unauthenticated callers. Without it, low-stock never shows (it reads as 0).
 
 ## Test checklist
 
-- [ ] Booking.com URL in the import list → its 9 / 13 / 30 Oct and 12 Nov
-      2026 nights are blocked, with source `booking_com`.
-- [ ] Both URLs on one line in the DB → still imported (backend splits).
+- [ ] Booking.com-imported blocks are stored with source `booking_com`
+      (new syncs + backfill of existing rows).
 - [ ] Our export feed contains only `direct` + `manual` blocks.
 - [ ] `POST …/blocks` with `endDate == startDate` → 400.
 - [ ] Product description `<b>x</b><script>alert(1)</script><a href=…>y</a>`
