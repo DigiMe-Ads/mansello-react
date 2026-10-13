@@ -2,10 +2,15 @@
 
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { isRenderableImageSrc } from "@/lib/image";
-import type { Product } from "@/lib/api/types";
+import type { Product, ProductVariant } from "@/lib/api/types";
 
 export interface CartItem {
+  // Identifies the cart line: one line per product, or per product +
+  // variation, so "Cream 80ml" and "Cream 100ml" are separate lines.
+  key: string;
   productId: string;
+  variantId: string | null;
+  variantName: string | null;
   name: string;
   priceUsd: number;
   image: string | null;
@@ -21,9 +26,10 @@ interface CartState {
   itemCount: number;
   subtotal: number;
   totalWeightKg: number;
-  addItem: (product: Product, quantity?: number) => void;
-  removeItem: (productId: string) => void;
-  setQuantity: (productId: string, quantity: number) => void;
+  // Pass the chosen variant for a product that has variations.
+  addItem: (product: Product, quantity?: number, variant?: ProductVariant | null) => void;
+  removeItem: (key: string) => void;
+  setQuantity: (key: string, quantity: number) => void;
   clear: () => void;
 }
 
@@ -35,6 +41,10 @@ function clampQuantity(quantity: number, maxStock: number | null): number {
   return Math.max(0, Math.min(Math.floor(quantity), limit));
 }
 
+export function cartLineKey(productId: string, variantId: string | null | undefined): string {
+  return `${productId}:${variantId ?? ""}`;
+}
+
 const CartContext = createContext<CartState | null>(null);
 const STORAGE_KEY = "mansello_sri_lanka_cart";
 
@@ -42,7 +52,14 @@ function readStoredCart(): CartItem[] {
   if (typeof window === "undefined") return [];
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
-    return raw ? (JSON.parse(raw) as CartItem[]) : [];
+    if (!raw) return [];
+    // Carts saved before variations existed have no key/variant fields.
+    return (JSON.parse(raw) as Partial<CartItem>[]).map((i) => ({
+      ...(i as CartItem),
+      variantId: i.variantId ?? null,
+      variantName: i.variantName ?? null,
+      key: i.key ?? cartLineKey(i.productId!, i.variantId),
+    }));
   } catch {
     return [];
   }
@@ -66,43 +83,44 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     window.localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
   }, [items, hydrated]);
 
-  function addItem(product: Product, quantity = 1) {
+  function addItem(product: Product, quantity = 1, variant: ProductVariant | null = null) {
     setItems((prev) => {
-      const maxStock = product.stockLevel?.quantityOnHand ?? null;
-      const existing = prev.find((i) => i.productId === product.id);
+      const source = variant ?? product;
+      const maxStock = source.stockLevel?.quantityOnHand ?? null;
+      const key = cartLineKey(product.id, variant?.id);
+      const existing = prev.find((i) => i.key === key);
 
       if (existing) {
         const nextQuantity = clampQuantity(existing.quantity + quantity, maxStock);
-        return prev.map((i) => (i.productId === product.id ? { ...i, quantity: nextQuantity } : i));
+        return prev.map((i) => (i.key === key ? { ...i, quantity: nextQuantity, maxStock } : i));
       }
 
       return [
         ...prev,
         {
+          key,
           productId: product.id,
+          variantId: variant?.id ?? null,
+          variantName: variant?.name ?? null,
           name: product.name,
-          priceUsd: Number(product.priceUsd),
+          priceUsd: Number(source.priceUsd),
           image: isRenderableImageSrc(product.images[0]) ? product.images[0] : null,
           quantity: clampQuantity(quantity, maxStock),
           maxStock,
-          unitWeightKg: Number(product.weightKg ?? 0),
+          unitWeightKg: Number(source.weightKg ?? 0),
         },
       ];
     });
   }
 
-  function removeItem(productId: string) {
-    setItems((prev) => prev.filter((i) => i.productId !== productId));
+  function removeItem(key: string) {
+    setItems((prev) => prev.filter((i) => i.key !== key));
   }
 
-  function setQuantity(productId: string, quantity: number) {
+  function setQuantity(key: string, quantity: number) {
     setItems((prev) => {
-      if (quantity <= 0) return prev.filter((i) => i.productId !== productId);
-      return prev.map((i) =>
-        i.productId === productId
-          ? { ...i, quantity: clampQuantity(quantity, i.maxStock) }
-          : i
-      );
+      if (quantity <= 0) return prev.filter((i) => i.key !== key);
+      return prev.map((i) => (i.key === key ? { ...i, quantity: clampQuantity(quantity, i.maxStock) } : i));
     });
   }
 

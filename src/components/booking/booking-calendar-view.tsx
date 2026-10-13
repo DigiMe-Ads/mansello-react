@@ -1,6 +1,7 @@
 "use client";
 
 import { ConversionNotice, Money } from "@/components/currency-provider";
+import { PaymentCancelledNotice } from "@/components/payments/hosted-checkout-panel";
 import { useMemo, useState } from "react";
 import Image from "next/image";
 import dynamic from "next/dynamic";
@@ -257,6 +258,11 @@ export function BookingCalendarView({
   return (
     <section id="booking" className="bg-[#EAF6FB] px-6 py-16 sm:px-12 lg:px-20">
       <div className="mx-auto max-w-6xl rounded-[2rem] bg-white p-8 shadow-lg sm:p-10">
+        {step === "select" && (
+          <div className="mb-6 empty:hidden">
+            <PaymentCancelledNotice message="Payment was cancelled, so nothing was charged and your dates have been released. You can pick them again below." />
+          </div>
+        )}
         {step === "select" && (
           <div className="grid gap-10 lg:grid-cols-[1fr_1fr_300px]">
             <MonthGridView

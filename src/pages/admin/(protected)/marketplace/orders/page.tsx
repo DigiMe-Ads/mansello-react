@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RequireAdmin } from "@/components/admin/require-admin";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { PaymentAlerts, PaymentSummary } from "@/components/admin/payment-details";
 import { ADMIN_SELECT } from "@/components/admin/input-styles";
 import { listOrders, updateOrderStatus } from "@/lib/api/marketplace";
 import { ApiRequestError } from "@/lib/api/errors";
@@ -160,6 +161,10 @@ function OrderRow({
         </td>
         <td className="border-t border-slate-100 px-4 py-3 font-semibold text-[#153C4D]">
           {formatMoney(order.total, "usd")}
+          <PaymentSummary record={order} />
+          {(order.paymentNote || order.refundStatus === "failed") && (
+            <span className="mt-0.5 block text-xs font-semibold text-red-600">⚠ see details</span>
+          )}
         </td>
         <td className="border-t border-slate-100 px-4 py-3">
           <StatusBadge status={order.status} />
@@ -177,6 +182,7 @@ function OrderRow({
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
             <div className="flex flex-col gap-2 text-sm text-slate-600">
+              <PaymentAlerts record={order} />
               <p>
                 <span className="font-semibold">Delivery address:</span> {order.deliveryAddress}
               </p>
@@ -189,7 +195,8 @@ function OrderRow({
                 {order.items.map((item) => (
                   <div key={item.id} className="flex justify-between">
                     <span>
-                      {item.productNameSnapshot} × {item.quantity}
+                      {item.productNameSnapshot}
+                      {item.variantNameSnapshot ? ` (${item.variantNameSnapshot})` : ""} × {item.quantity}
                     </span>
                     <span>{formatMoney(item.lineTotal, "usd")}</span>
                   </div>

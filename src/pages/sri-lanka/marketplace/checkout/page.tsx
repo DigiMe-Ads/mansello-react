@@ -9,6 +9,7 @@ import PageHero from "@/components/page-hero";
 import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
 import { CheckoutPaymentStep } from "@/components/marketplace/checkout-payment-step";
+import { HostedCheckoutPanel, PaymentCancelledNotice } from "@/components/payments/hosted-checkout-panel";
 import { createOrder } from "@/lib/api/marketplace";
 import { ApiRequestError, isValidationError } from "@/lib/api/errors";
 import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
@@ -69,7 +70,7 @@ export default function CheckoutPage() {
         deliveryAddress,
         notes: notes || undefined,
         shippingFee: feeAtSubmit,
-        items: items.map((i) => ({ productId: i.productId, quantity: i.quantity })),
+        items: items.map((i) => ({ productId: i.productId, variantId: i.variantId ?? undefined, quantity: i.quantity })),
       });
       setPaymentInfo(result);
     } catch (err) {
@@ -124,7 +125,19 @@ export default function CheckoutPage() {
 
         <section className="bg-white px-6 py-16 sm:px-12 lg:px-20">
           <div className="mx-auto grid max-w-4xl gap-10 lg:grid-cols-[1fr_320px]">
-            {paymentInfo ? (
+            {paymentInfo?.checkoutUrl ? (
+              // Payments.lk: the cart is cleared on the confirmation page once
+              // the order is confirmed, so cancelling on the hosted page
+              // brings the customer back with their cart intact.
+              <HostedCheckoutPanel
+                checkoutUrl={paymentInfo.checkoutUrl}
+                amount={paymentInfo.order.total}
+                currency="usd"
+                chargeAmount={paymentInfo.order.chargeAmount}
+                chargeCurrency={paymentInfo.order.chargeCurrency}
+                pendingOrderId={paymentInfo.order.id}
+              />
+            ) : paymentInfo?.clientSecret ? (
               <CheckoutPaymentStep
                 order={paymentInfo.order}
                 clientSecret={paymentInfo.clientSecret}
@@ -133,6 +146,7 @@ export default function CheckoutPage() {
               />
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+                <PaymentCancelledNotice message="Payment was cancelled, so nothing was charged. Your cart is still here — you can try again." />
                 <h2 className="text-lg font-bold text-[#153C4D]">Delivery details</h2>
                 <p className="text-sm text-slate-500">
                   Paid securely by card, same as booking a stay — you&apos;ll enter your card details on the next
@@ -221,9 +235,10 @@ export default function CheckoutPage() {
               <h3 className="text-sm font-bold text-[#153C4D]">Order Summary</h3>
               <div className="mt-4 flex flex-col gap-2">
                 {items.map((item) => (
-                  <div key={item.productId} className="flex justify-between text-sm text-slate-600">
+                  <div key={item.key} className="flex justify-between text-sm text-slate-600">
                     <span>
-                      {item.name} × {item.quantity}
+                      {item.name}
+                      {item.variantName ? ` (${item.variantName})` : ""} × {item.quantity}
                     </span>
                     <span><Money amount={item.priceUsd * item.quantity} currency="usd" /></span>
                   </div>

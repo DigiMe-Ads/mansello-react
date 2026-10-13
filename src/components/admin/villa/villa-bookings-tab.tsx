@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useState } from "react";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { PaymentAlerts, PaymentSummary } from "@/components/admin/payment-details";
 import { ADMIN_INPUT, ADMIN_SELECT } from "@/components/admin/input-styles";
 import { GuestInfoRequestPanel } from "@/components/admin/villa/guest-info-request-panel";
 import { cancelBooking, createOfflineBooking, listBookingsForProperty } from "@/lib/api/bookings";
@@ -149,6 +150,7 @@ export function VillaBookingsTab({
                           incl. {formatMoney(b.cityTax!, currency)} city tax
                         </span>
                       )}
+                      <PaymentSummary record={b} />
                     </td>
                     <td className="border-t border-slate-100 px-4 py-3">
                       <StatusBadge status={b.status} />
@@ -176,6 +178,13 @@ export function VillaBookingsTab({
                       </div>
                     </td>
                   </tr>
+                  {(b.paymentNote || (b.refundStatus === "failed" && b.refundError)) && (
+                    <tr>
+                      <td colSpan={6} className="px-4 pb-3">
+                        <PaymentAlerts record={b} />
+                      </td>
+                    </tr>
+                  )}
                   {cancelingId === b.id && (
                     <tr>
                       <td colSpan={6} className="border-t border-slate-100 bg-red-50/50 px-4 py-4">

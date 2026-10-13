@@ -7,6 +7,7 @@ import { ADMIN_INPUT, ADMIN_SELECT, ADMIN_TEXTAREA } from "@/components/admin/in
 import { ImageDropzone } from "@/components/admin/image-dropzone";
 import {
   adjustStock,
+  adjustVariantStock,
   createCategory,
   createProduct,
   deleteCategory,
@@ -29,6 +30,15 @@ import { AdminField } from "@/components/admin/admin-field";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
 import { categoriesInTreeOrder, categoryPath, isTopLevel, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
 import { isRichTextEmpty } from "@/lib/rich-text";
+import {
+  draftToInput,
+  EMPTY_VARIANT,
+  validateVariantDrafts,
+  VariantManager,
+  VariantRowsEditor,
+  type VariantDraft,
+} from "@/components/admin/product-variants";
+import { activeVariants, priceRange } from "@/lib/variants";
 
 // Product category <select> options: each top-level category followed by
 // its subcategories, indented. Products can be filed under either.
@@ -171,7 +181,7 @@ function ProductsContent() {
         <div className="rounded-2xl bg-amber-50 p-4">
           <p className="text-sm font-semibold text-amber-800">Low stock ({lowStock.length})</p>
           <p className="mt-1 text-xs text-amber-700">
-            {lowStock.map((item) => item.product.name).join(", ")}
+            {lowStock.map((item) => (item.variant ? `${item.product.name} (${item.variant.name})` : item.product.name)).join(", ")}
           </p>
         </div>
       )}
@@ -248,8 +258,16 @@ function ProductRow({
   onChanged: () => void;
 }) {
   const { authedFetch } = useAdminAuth();
+  const variants = product.variants ?? [];
   const stock = product.stockLevel;
-  const lowStock = stock && stock.quantityOnHand <= stock.lowStockThreshold;
+  const range = priceRange(product);
+  // With variations, stock lives on each one: show the total and flag the
+  // row if any variation is low.
+  const variantTotal = variants.reduce((sum, v) => sum + (v.stockLevel?.quantityOnHand ?? 0), 0);
+  const lowStock =
+    variants.length > 0
+      ? activeVariants(product).some((v) => v.stockLevel && v.stockLevel.quantityOnHand <= v.stockLevel.lowStockThreshold)
+      : stock && stock.quantityOnHand <= stock.lowStockThreshold;
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -295,10 +313,23 @@ function ProductRow({
           {categoryPath(categories.find((c) => c.id === product.categoryId) ?? product.category, categories)}
         </td>
         <td className="border-t border-slate-100 px-4 py-3 font-semibold text-[#153C4D]">
-          {formatMoney(product.priceUsd, "usd")}
+          {range.min === range.max
+            ? formatMoney(range.min, "usd")
+            : `${formatMoney(range.min, "usd")} – ${formatMoney(range.max, "usd")}`}
         </td>
         <td className={`border-t border-slate-100 px-4 py-3 ${lowStock ? "font-semibold text-amber-700" : "text-slate-600"}`}>
-          {stock ? `${stock.quantityOnHand} on hand` : "—"}
+          {variants.length > 0 ? (
+            <>
+              {variantTotal} on hand
+              <span className="block text-xs font-normal text-slate-400">
+                {variants.length} variation{variants.length === 1 ? "" : "s"}
+              </span>
+            </>
+          ) : stock ? (
+            `${stock.quantityOnHand} on hand`
+          ) : (
+            "—"
+          )}
         </td>
         <td className="border-t border-slate-100 px-4 py-3">
           <span
@@ -367,7 +398,7 @@ function ProductRow({
       {adjusting && (
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
-            <StockAdjustForm productId={product.id} onDone={onChanged} />
+            <StockAdjustForm product={product} onDone={onChanged} />
           </td>
         </tr>
       )}
@@ -375,6 +406,7 @@ function ProductRow({
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
             <EditProductForm product={product} categories={categories} onDone={onChanged} />
+            <VariantManager product={product} onChanged={onChanged} />
           </td>
         </tr>
       )}
@@ -914,6 +946,10 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
   const [initialStock, setInitialStock] = useState("0");
   const [lowStockThreshold, setLowStockThreshold] = useState("5");
   const [weightKg, setWeightKg] = useState("");
+  // Optional variations (e.g. 80ml / 100ml), each with its own SKU, price,
+  // weight and stock — replacing the single price/stock/weight fields.
+  const [withVariants, setWithVariants] = useState(false);
+  const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([{ ...EMPTY_VARIANT }, { ...EMPTY_VARIANT }]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -923,19 +959,28 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
       setError("Please add a description.");
       return;
     }
+    const variantProblem = withVariants ? validateVariantDrafts(variantDrafts) : null;
+    if (variantProblem) {
+      setError(variantProblem);
+      return;
+    }
     setSubmitting(true);
     setError(null);
     try {
+      const variants = withVariants ? variantDrafts.map(draftToInput) : undefined;
       await createProduct(authedFetch, {
         categoryId,
         name,
         description,
-        priceUsd: Number(priceUsd),
+        // With variations the product price is the lowest variation price
+        // (used for "From $X" and sorting); the backend recomputes it too.
+        priceUsd: variants ? Math.min(...variants.map((v) => v.priceUsd)) : Number(priceUsd),
         images,
         sku,
-        initialStock: Number(initialStock),
-        lowStockThreshold: Number(lowStockThreshold),
-        weightKg: weightKg ? Number(weightKg) : undefined,
+        initialStock: variants ? 0 : Number(initialStock),
+        lowStockThreshold: variants ? undefined : Number(lowStockThreshold),
+        weightKg: variants ? undefined : weightKg ? Number(weightKg) : undefined,
+        variants,
       });
       onCreated();
     } catch (err) {
@@ -955,7 +1000,11 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
           </option>
           <CategoryOptions categories={categories} />
         </select>
-        <AdminField label="SKU" required help="Your own product code — must be unique.">
+        <AdminField
+          label="SKU"
+          required
+          help={withVariants ? "Code for the product as a whole; each variation also gets its own SKU below." : "Your own product code — must be unique."}
+        >
           <input required placeholder="e.g. RAGU-250" value={sku} onChange={(e) => setSku(e.target.value)} className={ADMIN_INPUT} />
         </AdminField>
         <AdminField label="Product name" required className="sm:col-span-2" help="Shown to customers in the shop and cart.">
@@ -976,18 +1025,34 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
             placeholder="Describe the product — ingredients, size, how to use it..."
           />
         </div>
-        <AdminField label="Price (USD)" required help="What the customer pays per unit.">
-          <input required type="number" min={0} step="0.01" placeholder="0.00" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
-        </AdminField>
-        <AdminField label="Initial stock" required help="How many units you have right now.">
-          <input required type="number" min={0} placeholder="0" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} className={ADMIN_INPUT} />
-        </AdminField>
-        <AdminField label="Low stock alert at" help="Flags the product in this list once stock drops to this number.">
-          <input type="number" min={0} placeholder="0" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className={ADMIN_INPUT} />
-        </AdminField>
-        <AdminField label="Weight per unit (kg)" help="Used to work out the delivery charge at checkout. Leave 0 if delivery is free.">
-          <input type="number" min={0} step="0.01" placeholder="0.00" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={ADMIN_INPUT} />
-        </AdminField>
+        <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 sm:col-span-2">
+          <input type="checkbox" checked={withVariants} onChange={(e) => setWithVariants(e.target.checked)} />
+          This product has variations (e.g. sizes like 80ml and 100ml)
+        </label>
+        {withVariants ? (
+          <div className="sm:col-span-2">
+            <p className="mb-2 text-xs text-slate-400">
+              Each variation is sold separately with its own SKU, price, weight and stock. Customers choose one in the
+              product window.
+            </p>
+            <VariantRowsEditor drafts={variantDrafts} onChange={setVariantDrafts} />
+          </div>
+        ) : (
+          <>
+          <AdminField label="Price (USD)" required help="What the customer pays per unit.">
+            <input required type="number" min={0} step="0.01" placeholder="0.00" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
+          </AdminField>
+          <AdminField label="Initial stock" required help="How many units you have right now.">
+            <input required type="number" min={0} placeholder="0" value={initialStock} onChange={(e) => setInitialStock(e.target.value)} className={ADMIN_INPUT} />
+          </AdminField>
+          <AdminField label="Low stock alert at" help="Flags the product in this list once stock drops to this number.">
+            <input type="number" min={0} placeholder="0" value={lowStockThreshold} onChange={(e) => setLowStockThreshold(e.target.value)} className={ADMIN_INPUT} />
+          </AdminField>
+          <AdminField label="Weight per unit (kg)" help="Used to work out the delivery charge at checkout. Leave 0 if delivery is free.">
+            <input type="number" min={0} step="0.01" placeholder="0.00" value={weightKg} onChange={(e) => setWeightKg(e.target.value)} className={ADMIN_INPUT} />
+          </AdminField>
+          </>
+        )}
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <button
@@ -1020,6 +1085,8 @@ function EditProductForm({
   const [weightKg, setWeightKg] = useState(product.weightKg ?? "");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Price and weight are set per variation once a product has any.
+  const variantPriced = (product.variants ?? []).length > 0;
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -1034,10 +1101,10 @@ function EditProductForm({
         categoryId,
         name,
         description,
-        priceUsd: Number(priceUsd),
+        priceUsd: variantPriced ? undefined : Number(priceUsd),
         images,
         active,
-        weightKg: weightKg !== "" ? Number(weightKg) : undefined,
+        weightKg: variantPriced ? undefined : weightKg !== "" ? Number(weightKg) : undefined,
       });
       onDone();
     } catch (err) {
@@ -1055,16 +1122,24 @@ function EditProductForm({
           <CategoryOptions categories={categories} />
         </select>
         <input value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
-        <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
-        <input
-          type="number"
-          min={0}
-          step="0.01"
-          placeholder="Weight per unit (kg)"
-          value={weightKg}
-          onChange={(e) => setWeightKg(e.target.value)}
-          className={ADMIN_INPUT}
-        />
+        {variantPriced ? (
+          <p className="self-center text-xs text-slate-400 sm:col-span-1">
+            Price and weight are set per variation below.
+          </p>
+        ) : (
+          <>
+          <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
+          <input
+            type="number"
+            min={0}
+            step="0.01"
+            placeholder="Weight per unit (kg)"
+            value={weightKg}
+            onChange={(e) => setWeightKg(e.target.value)}
+            className={ADMIN_INPUT}
+          />
+          </>
+        )}
         <div className="sm:col-span-2">
           <RichTextEditor value={description} onChange={setDescription} ariaLabel="Product description" />
         </div>
@@ -1085,8 +1160,10 @@ function EditProductForm({
   );
 }
 
-function StockAdjustForm({ productId, onDone }: { productId: string; onDone: () => void }) {
+function StockAdjustForm({ product, onDone }: { product: Product; onDone: () => void }) {
   const { authedFetch } = useAdminAuth();
+  const variants = [...(product.variants ?? [])].sort((x, y) => x.sortOrder - y.sortOrder);
+  const [variantId, setVariantId] = useState(variants[0]?.id ?? "");
   const [delta, setDelta] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -1097,7 +1174,8 @@ function StockAdjustForm({ productId, onDone }: { productId: string; onDone: () 
     setSubmitting(true);
     setError(null);
     try {
-      await adjustStock(authedFetch, productId, Number(delta));
+      if (variants.length > 0) await adjustVariantStock(authedFetch, product.id, variantId, Number(delta));
+      else await adjustStock(authedFetch, product.id, Number(delta));
       setDelta("");
       onDone();
     } catch (err) {
@@ -1108,8 +1186,22 @@ function StockAdjustForm({ productId, onDone }: { productId: string; onDone: () 
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex items-center gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
       {error && <p className="text-xs text-red-700">{error}</p>}
+      {variants.length > 0 && (
+        <select
+          aria-label="Variation"
+          value={variantId}
+          onChange={(e) => setVariantId(e.target.value)}
+          className={ADMIN_SELECT}
+        >
+          {variants.map((v) => (
+            <option key={v.id} value={v.id}>
+              {v.name} — {v.stockLevel?.quantityOnHand ?? 0} on hand
+            </option>
+          ))}
+        </select>
+      )}
       <input
         type="number"
         placeholder="Delta (e.g. 10 or -3)"

@@ -6,7 +6,8 @@ import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Link } from "react-router-dom";
 import { Minus, Plus, ShoppingCart, Star, X } from "lucide-react";
-import { MAX_CART_QUANTITY, useCart } from "@/components/marketplace/cart-provider";
+import { cartLineKey, MAX_CART_QUANTITY, useCart } from "@/components/marketplace/cart-provider";
+import { activeVariants, defaultVariant, priceRange, productStockStatus, stockStatusOf } from "@/lib/variants";
 import { createProductReview, getProductReviews } from "@/lib/api/marketplace";
 import { ApiRequestError } from "@/lib/api/errors";
 import { categoryPath } from "@/lib/category-tree";
@@ -15,10 +16,9 @@ import { isRenderableImageSrc } from "@/lib/image";
 import { sanitizeRichText } from "@/lib/rich-text";
 import type { Category, Product, ProductReview } from "@/lib/api/types";
 
+/** Product-wide stock (all variations together for a product that has them). */
 export function stockStatus(product: Product): { stock: number; soldOut: boolean; low: boolean } {
-  const stock = product.stockLevel?.quantityOnHand ?? 0;
-  const threshold = product.stockLevel?.lowStockThreshold ?? 0;
-  return { stock, soldOut: stock <= 0, low: stock > 0 && stock <= threshold };
+  return productStockStatus(product);
 }
 
 export function StarRating({ value, size = 16 }: { value: number; size?: number }) {
@@ -47,8 +47,14 @@ export function ProductDetailDialog({
   onReviewAdded: (rating: number) => void;
 }) {
   const { items, addItem } = useCart();
-  const { stock, soldOut, low } = stockStatus(product);
-  const inCart = items.find((i) => i.productId === product.id)?.quantity ?? 0;
+  // Products with variations sell per variation: price, stock and SKU all
+  // follow whichever one is picked.
+  const variants = activeVariants(product);
+  const [variantId, setVariantId] = useState<string | null>(() => defaultVariant(product)?.id ?? null);
+  const variant = variants.find((v) => v.id === variantId) ?? null;
+  const { stock, soldOut, low } = variant ? stockStatusOf(variant.stockLevel) : stockStatus(product);
+  const price = variant ? variant.priceUsd : product.priceUsd;
+  const inCart = items.find((i) => i.key === cartLineKey(product.id, variant?.id))?.quantity ?? 0;
   const canAdd = Math.max(0, Math.min(stock, MAX_CART_QUANTITY) - inCart);
 
   const images = product.images.filter((src) => isRenderableImageSrc(src));
@@ -80,7 +86,7 @@ export function ProductDetailDialog({
   }, []);
 
   function handleAdd() {
-    addItem(product, Math.min(quantity, canAdd));
+    addItem(product, Math.min(quantity, canAdd), variant);
     setQuantity(1);
     setAdded(true);
   }
@@ -173,7 +179,41 @@ export function ProductDetailDialog({
               </button>
             )}
 
-            <p className="mt-4 text-2xl font-bold text-[#153C4D]"><Money amount={product.priceUsd} currency="usd" /></p>
+            <p className="mt-4 text-2xl font-bold text-[#153C4D]"><Money amount={price} currency="usd" /></p>
+
+            {variants.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Option{variant ? `: ${variant.name}` : ""}
+                </p>
+                <div className="mt-2 flex flex-wrap gap-2" role="radiogroup" aria-label="Choose an option">
+                  {variants.map((v) => {
+                    const out = stockStatusOf(v.stockLevel).soldOut;
+                    const selected = v.id === variantId;
+                    return (
+                      <button
+                        key={v.id}
+                        type="button"
+                        role="radio"
+                        aria-checked={selected}
+                        onClick={() => {
+                          setVariantId(v.id);
+                          setQuantity(1);
+                          setAdded(false);
+                        }}
+                        className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
+                          selected
+                            ? "border-[#153C4D] bg-[#153C4D] text-white"
+                            : "border-slate-300 bg-white text-slate-700 hover:border-[#153C4D]"
+                        } ${out ? "line-through opacity-50" : ""}`}
+                      >
+                        {v.name}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-3">
               {soldOut ? (
@@ -420,5 +460,16 @@ function ReviewForm({ productId, onCreated }: { productId: string; onCreated: (r
         {submitting ? "Posting..." : "Post Review"}
       </button>
     </form>
+  );
+}
+
+/** Card price: a single price, or "From $X" when variations differ in price. */
+export function ProductPrice({ product }: { product: Product }) {
+  const { min, max } = priceRange(product);
+  return (
+    <>
+      {min !== max && "From "}
+      <Money amount={min} currency="usd" />
+    </>
   );
 }

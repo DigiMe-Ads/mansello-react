@@ -65,6 +65,8 @@ interface BookingProviderState {
   setWantsTransport: (value: boolean) => void;
   booking: Booking | null;
   clientSecret: string | null;
+  // Payments.lk hosted checkout (Sri Lanka) — set instead of clientSecret.
+  checkoutUrl: string | null;
   submitting: boolean;
   submitError: string | null;
   fieldErrors: Record<string, string>;
@@ -131,6 +133,7 @@ export function BookingProvider({
   const [offers, setOffers] = useState<Offer[]>([]);
   const [booking, setBooking] = useState<Booking | null>(null);
   const [clientSecret, setClientSecret] = useState<string | null>(null);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
@@ -319,6 +322,7 @@ export function BookingProvider({
     setSelectedRoomIdsState([]);
     setBooking(null);
     setClientSecret(null);
+    setCheckoutUrl(null);
     setSubmitError(null);
     setFieldErrors({});
   }, []);
@@ -358,7 +362,8 @@ export function BookingProvider({
           transportRequested: wantsTransport && transportPrice != null ? true : undefined,
         });
         setBooking(result.booking);
-        setClientSecret(result.clientSecret);
+        setClientSecret(result.clientSecret ?? null);
+        setCheckoutUrl(result.checkoutUrl ?? null);
         setStep("payment");
 
         // Transport add-on is a best-effort side request — the booking
@@ -427,6 +432,7 @@ export function BookingProvider({
       setWantsTransport,
       booking,
       clientSecret,
+      checkoutUrl,
       submitting,
       submitError,
       fieldErrors,
@@ -460,6 +466,7 @@ export function BookingProvider({
       wantsTransport,
       booking,
       clientSecret,
+      checkoutUrl,
       submitting,
       submitError,
       fieldErrors,

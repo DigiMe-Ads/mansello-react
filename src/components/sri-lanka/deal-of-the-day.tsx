@@ -1,6 +1,6 @@
 "use client";
 
-import { Money } from "@/components/currency-provider";
+import { ProductPrice } from "@/components/marketplace/product-detail-dialog";
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
@@ -147,7 +147,7 @@ export default function DealOfTheDay() {
               <h3 className="mt-4 text-2xl font-extrabold uppercase tracking-wide text-[#153C4D]">
                 {activeProduct.name}
               </h3>
-              <p className="mt-2 text-sm text-slate-500"><Money amount={activeProduct.priceUsd} currency="usd" /></p>
+              <p className="mt-2 text-sm text-slate-500"><ProductPrice product={activeProduct} /></p>
               <button
                 type="button"
                 onClick={() => openProduct(activeProduct)}

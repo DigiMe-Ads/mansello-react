@@ -13,6 +13,21 @@ export function normalizeRange(a: string, b: string): DateRange {
   return a <= b ? { start: a, end: b } : { start: b, end: a };
 }
 
+/** What occupies a night, for showing existing bookings on the calendar. */
+export interface NightBooking {
+  source: "direct" | "airbnb" | "booking_com" | "manual" | "pending";
+  /** Tooltip text, e.g. "Direct booking — Nadia P." */
+  label: string;
+}
+
+export const BOOKING_STYLES: Record<NightBooking["source"], { bar: string; name: string }> = {
+  direct: { bar: "bg-emerald-500", name: "Direct booking" },
+  airbnb: { bar: "bg-rose-500", name: "Airbnb" },
+  booking_com: { bar: "bg-blue-600", name: "Booking.com" },
+  manual: { bar: "bg-slate-500", name: "Manual block" },
+  pending: { bar: "bg-amber-500", name: "Being booked (awaiting payment)" },
+};
+
 function inRange(key: string, range: DateRange | null): boolean {
   return !!range && key >= range.start && key <= range.end;
 }
@@ -27,6 +42,8 @@ interface PriceCalendarProps {
   priceFor?: (dateKey: string) => number | null;
   /** True when this date's price comes from a seasonal override, not the base rate. */
   isOverridden?: (dateKey: string) => boolean;
+  /** Existing booking/block on a night, or null when it's free. */
+  bookingFor?: (dateKey: string) => NightBooking | null;
   /** Currency code for display, e.g. "eur". */
   currency?: string;
   /** Drag-to-select. When false the calendar is a read-only price view. */
@@ -62,6 +79,7 @@ export function PriceCalendar({
   initialMonth,
   priceFor,
   isOverridden,
+  bookingFor,
   currency = "",
   selectable = false,
   selection = null,
@@ -157,6 +175,7 @@ export function PriceCalendar({
                 const overridden = isOverridden?.(cell.key) ?? false;
                 const selected = inRange(cell.key, selection);
                 const isToday = cell.key === today;
+                const booked = bookingFor?.(cell.key) ?? null;
 
                 return (
                   <button
@@ -173,9 +192,10 @@ export function PriceCalendar({
                     aria-pressed={selectable ? selected : undefined}
                     aria-label={`${cell.key}${price != null ? `, ${formatPrice(price, currency)} per night` : ""}${
                       overridden ? ", seasonal price" : ""
-                    }`}
+                    }${booked ? `, ${booked.label}` : ""}`}
+                    title={booked?.label}
                     className={[
-                      "flex min-h-[44px] flex-col items-center justify-center rounded-md border text-[11px] leading-tight transition",
+                      "relative flex min-h-[44px] flex-col items-center justify-center overflow-hidden rounded-md border text-[11px] leading-tight transition",
                       selectable ? "cursor-pointer touch-none" : "cursor-default",
                       selected
                         ? "border-[#153C4D] bg-[#153C4D] text-white"
@@ -191,6 +211,15 @@ export function PriceCalendar({
                       <span className={selected ? "text-white/80" : "text-slate-400"}>
                         {formatPrice(price, currency)}
                       </span>
+                    )}
+                    {booked && (
+                      // Bar along the bottom, coloured by source — the price
+                      // stays readable, and a booked night stands out at a
+                      // glance across the whole year.
+                      <span
+                        aria-hidden
+                        className={`absolute inset-x-0 bottom-0 h-[5px] ${BOOKING_STYLES[booked.source].bar}`}
+                      />
                     )}
                   </button>
                 );

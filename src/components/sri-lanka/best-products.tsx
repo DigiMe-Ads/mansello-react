@@ -1,11 +1,10 @@
 "use client";
 
-import { Money } from "@/components/currency-provider";
-
 import Image from "next/image";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
 import { useCart } from "@/components/marketplace/cart-provider";
-import { StarRating, stockStatus } from "@/components/marketplace/product-detail-dialog";
+import { StarRating, stockStatus, ProductPrice } from "@/components/marketplace/product-detail-dialog";
+import { hasVariants } from "@/lib/variants";
 import { categoryIdsForFilter, rootCategoryOf, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
 import { isRenderableImageSrc } from "@/lib/image";
 import type { Product } from "@/lib/api/types";
@@ -53,17 +52,19 @@ function ProductCard({ product }: { product: Product }) {
               <StarRating value={product.averageRating ?? 0} size={12} />({product.reviewCount})
             </div>
           )}
-          <p className="mt-1 text-sm text-slate-500"><Money amount={product.priceUsd} currency="usd" /></p>
+          <p className="mt-1 text-sm text-slate-500"><ProductPrice product={product} /></p>
         </div>
       </button>
       <div className="mt-auto px-3 pb-4">
         <button
           type="button"
           disabled={soldOut}
-          onClick={() => addItem(product)}
+          // A product with variations needs an option picked first, which
+          // happens in the detail dialog.
+          onClick={() => (hasVariants(product) ? openProduct(product) : addItem(product))}
           className="mt-3 w-full rounded-full bg-[#8DC63F] py-2 text-xs font-bold uppercase tracking-wide text-white transition hover:bg-[#72A62E] disabled:cursor-not-allowed disabled:opacity-40"
         >
-          {soldOut ? "Sold Out" : "Add to Cart"}
+          {soldOut ? "Sold Out" : hasVariants(product) ? "Choose Options" : "Add to Cart"}
         </button>
       </div>
     </div>

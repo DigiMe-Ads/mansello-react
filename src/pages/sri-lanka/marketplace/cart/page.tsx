@@ -49,7 +49,7 @@ export default function CartPage() {
                 <div className="flex flex-col gap-4">
                   {items.map((item) => (
                     <div
-                      key={item.productId}
+                      key={item.key}
                       className="flex flex-wrap items-center gap-4 rounded-2xl border border-slate-200 p-4"
                     >
                       <div className="relative h-20 w-20 shrink-0 overflow-hidden rounded-xl bg-slate-100">
@@ -57,12 +57,13 @@ export default function CartPage() {
                       </div>
                       <div className="min-w-[140px] flex-1">
                         <p className="text-sm font-bold text-[#153C4D]">{item.name}</p>
+                        {item.variantName && <p className="text-xs text-slate-500">{item.variantName}</p>}
                         <p className="mt-1 text-sm text-slate-500"><Money amount={item.priceUsd} currency="usd" /> each</p>
                       </div>
                       <div className="flex items-center gap-2">
                         <button
                           type="button"
-                          onClick={() => setQuantity(item.productId, item.quantity - 1)}
+                          onClick={() => setQuantity(item.key, item.quantity - 1)}
                           className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50"
                           aria-label="Decrease quantity"
                         >
@@ -71,7 +72,7 @@ export default function CartPage() {
                         <span className="w-6 text-center text-sm font-semibold text-[#153C4D]">{item.quantity}</span>
                         <button
                           type="button"
-                          onClick={() => setQuantity(item.productId, item.quantity + 1)}
+                          onClick={() => setQuantity(item.key, item.quantity + 1)}
                           disabled={item.maxStock != null && item.quantity >= item.maxStock}
                           className="grid h-8 w-8 place-items-center rounded-full border border-slate-200 text-slate-500 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
                           aria-label="Increase quantity"
@@ -84,7 +85,7 @@ export default function CartPage() {
                       </p>
                       <button
                         type="button"
-                        onClick={() => removeItem(item.productId)}
+                        onClick={() => removeItem(item.key)}
                         aria-label="Remove item"
                         className="text-slate-400 hover:text-red-500"
                       >

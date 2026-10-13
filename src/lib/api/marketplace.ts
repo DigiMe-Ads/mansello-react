@@ -6,14 +6,17 @@ import type {
   CreateOrderInput,
   CreateOrderResponse,
   CreateProductInput,
+  CreateProductVariantInput,
   CreateProductReviewInput,
   LowStockItem,
   Order,
   Product,
   ProductReview,
+  ProductVariant,
   ShippingRate,
   UpdateCategoryInput,
   UpdateProductInput,
+  UpdateProductVariantInput,
   UpsertShippingRateInput,
 } from "./types";
 
@@ -128,6 +131,39 @@ export function adjustStock(fetcher: AuthedFetch, productId: string, delta: numb
     method: "POST",
     body: JSON.stringify({ delta }),
   });
+}
+
+// --- Product variations (admin) ---
+
+export function createProductVariant(fetcher: AuthedFetch, productId: string, input: CreateProductVariantInput) {
+  return fetcher<ProductVariant>(`/api/marketplace/catalog/products/${productId}/variants`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateProductVariant(
+  fetcher: AuthedFetch,
+  productId: string,
+  variantId: string,
+  input: UpdateProductVariantInput
+) {
+  return fetcher<ProductVariant>(`/api/marketplace/catalog/products/${productId}/variants/${variantId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// 409 if the variation has order history — deactivate it instead.
+export function deleteProductVariant(fetcher: AuthedFetch, productId: string, variantId: string) {
+  return fetcher<void>(`/api/marketplace/catalog/products/${productId}/variants/${variantId}`, { method: "DELETE" });
+}
+
+export function adjustVariantStock(fetcher: AuthedFetch, productId: string, variantId: string, delta: number) {
+  return fetcher<ProductVariant>(
+    `/api/marketplace/catalog/products/${productId}/variants/${variantId}/stock-adjustment`,
+    { method: "POST", body: JSON.stringify({ delta }) }
+  );
 }
 
 export function listLowStock(fetcher: AuthedFetch) {

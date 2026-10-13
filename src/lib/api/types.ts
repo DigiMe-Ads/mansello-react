@@ -178,6 +178,8 @@ export interface AvailabilityBlock {
   roomId?: string | null;
 }
 
+export type RefundStatus = "pending" | "succeeded" | "failed";
+
 export type BookingStatus = "pending_payment" | "confirmed" | "paid_offline" | "cancelled" | "completed";
 
 export interface Booking {
@@ -208,6 +210,21 @@ export interface Booking {
   totalPrice: string;
   currency: string;
   stripePaymentIntentId: string | null;
+  // Payments.lk (Sri Lanka) charges in LKR while Sri Lanka prices are in
+  // USD — the backend converts when it creates the checkout and records the
+  // exact amount here, so the payment step can show what the card will
+  // actually be charged. Absent for Stripe payments (charged in `currency`).
+  // See BACKEND_CHANGES_VARIANTS_CALENDAR_PAYMENTS_LK.md §3.
+  chargeAmount?: string | null;
+  chargeCurrency?: string | null;
+  // Refund tracking (Payments.lk). refundedChargeAmount is what was actually
+  // refunded in chargeCurrency, including refunds made in the Payments.lk
+  // dashboard. paymentNote is a message for the admin, e.g. "refund made
+  // outside the admin". All absent on Stripe/older records.
+  refundStatus?: RefundStatus | null;
+  refundError?: string | null;
+  refundedChargeAmount?: string | null;
+  paymentNote?: string | null;
   status: BookingStatus;
   expiresAt: string | null;
   cancelledAt: string | null;
@@ -245,7 +262,11 @@ export interface CreateBookingInput {
 
 export interface CreateBookingResponse {
   booking: Booking;
-  clientSecret: string;
+  // Exactly one of these is set. Stripe (Italy, and Sri Lanka until the
+  // switch): `clientSecret` for the embedded card form. Payments.lk (Sri
+  // Lanka): `checkoutUrl`, the hosted payment page to send the guest to.
+  clientSecret?: string | null;
+  checkoutUrl?: string | null;
 }
 
 export interface Category {
@@ -302,6 +323,44 @@ export interface Product {
   // the storefront just shows "no reviews yet".
   averageRating?: number | null;
   reviewCount?: number;
+  // Optional variations (e.g. 80ml / 100ml), each with its own SKU, price,
+  // weight and stock. When a product has any active variant, customers must
+  // pick one, and the product-level stockLevel / sku / weightKg / priceUsd
+  // are not used for selling (priceUsd is kept as the lowest variant price
+  // for sorting and "from" labels). Absent/empty = a plain product, exactly
+  // as before. See BACKEND_CHANGES_VARIANTS_CALENDAR_PAYMENTS_LK.md §1.
+  variants?: ProductVariant[];
+}
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  name: string; // shown to customers, e.g. "80ml"
+  sku: string; // unique across products AND variants
+  priceUsd: string;
+  weightKg?: string | null;
+  active: boolean;
+  sortOrder: number;
+  stockLevel: StockLevel | null;
+}
+
+export interface CreateProductVariantInput {
+  name: string;
+  sku: string;
+  priceUsd: number;
+  weightKg?: number;
+  initialStock: number;
+  lowStockThreshold?: number;
+}
+
+export interface UpdateProductVariantInput {
+  name?: string;
+  sku?: string;
+  priceUsd?: number;
+  weightKg?: number;
+  active?: boolean;
+  sortOrder?: number;
+  lowStockThreshold?: number;
 }
 
 export interface ProductReview {
@@ -325,6 +384,10 @@ export interface OrderItem {
   id: string;
   orderId: string;
   productId: string;
+  // Set when the line is a specific variation; the name is snapshotted like
+  // productNameSnapshot so later renames don't rewrite past orders.
+  variantId?: string | null;
+  variantNameSnapshot?: string | null;
   productNameSnapshot: string;
   unitPriceSnapshot: string;
   quantity: number;
@@ -343,6 +406,21 @@ export interface Order {
   // Optional/absent for a not-yet-updated backend or an order placed before
   // the marketplace switched from cash-on-delivery to card payment.
   stripePaymentIntentId?: string | null;
+  // Payments.lk (Sri Lanka) charges in LKR while Sri Lanka prices are in
+  // USD — the backend converts when it creates the checkout and records the
+  // exact amount here, so the payment step can show what the card will
+  // actually be charged. Absent for Stripe payments (charged in `currency`).
+  // See BACKEND_CHANGES_VARIANTS_CALENDAR_PAYMENTS_LK.md §3.
+  chargeAmount?: string | null;
+  chargeCurrency?: string | null;
+  // Refund tracking (Payments.lk). refundedChargeAmount is what was actually
+  // refunded in chargeCurrency, including refunds made in the Payments.lk
+  // dashboard. paymentNote is a message for the admin, e.g. "refund made
+  // outside the admin". All absent on Stripe/older records.
+  refundStatus?: RefundStatus | null;
+  refundError?: string | null;
+  refundedChargeAmount?: string | null;
+  paymentNote?: string | null;
   shippingFee: string;
   subtotal: string;
   total: string;
@@ -358,7 +436,7 @@ export interface CreateOrderInput {
   deliveryAddress: string;
   notes?: string;
   shippingFee: number;
-  items: { productId: string; quantity: number }[];
+  items: { productId: string; variantId?: string; quantity: number }[];
 }
 
 // The marketplace now takes payment up front through the same Sri Lanka
@@ -369,11 +447,17 @@ export interface CreateOrderInput {
 // BACKEND_CHANGES_MARKETPLACE_PAYMENTS.md.
 export interface CreateOrderResponse {
   order: Order;
-  clientSecret: string;
+  // Exactly one of these is set. Stripe (Italy, and Sri Lanka until the
+  // switch): `clientSecret` for the embedded card form. Payments.lk (Sri
+  // Lanka): `checkoutUrl`, the hosted payment page to send the guest to.
+  clientSecret?: string | null;
+  checkoutUrl?: string | null;
 }
 
 export interface LowStockItem extends StockLevel {
   product: Product;
+  // Set when the low stock is on one variation rather than the product.
+  variant?: ProductVariant | null;
 }
 
 export interface CreateProductInput {
@@ -386,6 +470,9 @@ export interface CreateProductInput {
   initialStock: number;
   lowStockThreshold?: number;
   weightKg?: number;
+  // Create the product with its variations in one request. When present,
+  // initialStock / lowStockThreshold / weightKg above are ignored.
+  variants?: CreateProductVariantInput[];
 }
 
 export interface UpdateProductInput {

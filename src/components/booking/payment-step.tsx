@@ -7,7 +7,72 @@ import { useRouter } from "next/navigation";
 import { Elements, PaymentElement, useElements, useStripe } from "@stripe/react-stripe-js";
 import { getStripePromise } from "@/lib/stripe";
 import { useCountdown } from "@/lib/hooks/use-countdown";
+import { HostedCheckoutPanel } from "@/components/payments/hosted-checkout-panel";
 import { usePropertyBooking } from "./booking-provider";
+
+function HoldExpired({ onReset }: { onReset: () => void }) {
+  return (
+    <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
+      <p className="text-sm font-medium text-amber-800">
+        Your hold expired before payment was completed. Please start again.
+      </p>
+      <button
+        type="button"
+        onClick={onReset}
+        className="mt-4 rounded-full bg-[#8DC63F] px-6 py-2 text-sm font-bold text-white transition hover:bg-[#72A62E]"
+      >
+        Start Again
+      </button>
+    </div>
+  );
+}
+
+function HoldBadge({ minutes, seconds }: { minutes: number; seconds: number }) {
+  return (
+    <span className="rounded-full bg-[#153C4D]/10 px-3 py-1 text-xs font-semibold text-[#153C4D]">
+      Hold expires in {String(minutes).padStart(2, "0")}:{String(seconds).padStart(2, "0")}
+    </span>
+  );
+}
+
+// Payments.lk: the guest pays on the hosted page and returns to the
+// confirmation page, which polls until the webhook has confirmed the booking.
+function HostedPayment({ checkoutUrl }: { checkoutUrl: string }) {
+  const { booking, reset } = usePropertyBooking();
+  const countdown = useCountdown(booking?.expiresAt ?? null);
+  if (!booking) return null;
+  if (countdown.expired) return <HoldExpired onReset={reset} />;
+
+  return (
+    <HostedCheckoutPanel
+      checkoutUrl={checkoutUrl}
+      amount={booking.totalPrice}
+      currency={booking.currency}
+      chargeAmount={booking.chargeAmount}
+      chargeCurrency={booking.chargeCurrency}
+      countdown={booking.expiresAt ? <HoldBadge minutes={countdown.minutes} seconds={countdown.seconds} /> : null}
+    >
+      <div className="rounded-2xl bg-[#F7F5F0] px-4 py-3 text-sm text-slate-600">
+        {booking.accommodationPrice != null && (
+          <div className="flex items-center justify-between">
+            <span>Accommodation</span>
+            <span><Money amount={booking.accommodationPrice} currency={booking.currency} /></span>
+          </div>
+        )}
+        {booking.transportPrice != null && Number(booking.transportPrice) > 0 && (
+          <div className="mt-1 flex items-center justify-between">
+            <span>Airport transfer</span>
+            <span><Money amount={booking.transportPrice} currency={booking.currency} /></span>
+          </div>
+        )}
+        <div className="mt-2 flex items-center justify-between border-t border-slate-200 pt-2 font-semibold text-[#153C4D]">
+          <span>Total</span>
+          <span><Money amount={booking.totalPrice} currency={booking.currency} charged /></span>
+        </div>
+      </div>
+    </HostedCheckoutPanel>
+  );
+}
 
 function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
   const { booking, reset } = usePropertyBooking();
@@ -47,22 +112,7 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
     router.push(`${confirmationPath}?bookingId=${booking.id}`);
   }
 
-  if (countdown.expired) {
-    return (
-      <div className="mx-auto max-w-md rounded-2xl border border-amber-200 bg-amber-50 p-6 text-center">
-        <p className="text-sm font-medium text-amber-800">
-          Your hold expired before payment was completed. Please start again.
-        </p>
-        <button
-          type="button"
-          onClick={reset}
-          className="mt-4 rounded-full bg-[#8DC63F] px-6 py-2 text-sm font-bold text-white transition hover:bg-[#72A62E]"
-        >
-          Start Again
-        </button>
-      </div>
-    );
-  }
+  if (countdown.expired) return <HoldExpired onReset={reset} />;
 
   return (
     <form onSubmit={handleSubmit} className="mx-auto max-w-md">
@@ -137,8 +187,10 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
 }
 
 export function PaymentStep({ confirmationPath }: { confirmationPath: string }) {
-  const { property, clientSecret } = usePropertyBooking();
-  if (!property || !clientSecret) return null;
+  const { property, clientSecret, checkoutUrl } = usePropertyBooking();
+  if (!property) return null;
+  if (checkoutUrl) return <HostedPayment checkoutUrl={checkoutUrl} />;
+  if (!clientSecret) return null;
 
   return (
     <Elements

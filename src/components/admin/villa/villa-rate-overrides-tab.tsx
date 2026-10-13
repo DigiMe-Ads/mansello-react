@@ -3,13 +3,20 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT, ADMIN_SELECT } from "@/components/admin/input-styles";
-import { PriceCalendar, type DateRange } from "@/components/admin/villa/price-calendar";
+import {
+  BOOKING_STYLES,
+  PriceCalendar,
+  type DateRange,
+  type NightBooking,
+} from "@/components/admin/villa/price-calendar";
 import { createRateOverride, deleteRateOverride, getRateOverrides } from "@/lib/api/rate-overrides";
+import { getAvailabilityAdmin } from "@/lib/api/availability";
+import { listBookingsForProperty } from "@/lib/api/bookings";
 import { usesRoomModel } from "@/lib/api/rooms";
 import { resolveNightlyPriceForRoom, resolveNightlyPriceForTier } from "@/lib/api/pricing";
-import { formatDisplayDate } from "@/lib/date";
+import { addDaysToKey, formatDisplayDate, todayKey } from "@/lib/date";
 import { ApiRequestError } from "@/lib/api/errors";
-import type { Property, RateOverride, Room } from "@/lib/api/types";
+import type { AvailabilityBlock, Booking, Property, RateOverride, Room } from "@/lib/api/types";
 
 // Admin-defined "charge X/night for this date range instead of the base
 // rate" — layered on top of the Rooms tab's per-room rate (Sri Lanka) or the
@@ -22,6 +29,19 @@ type Target = { kind: "room"; roomId: string } | { kind: "tier"; guestCount: num
 
 function targetKey(t: Target): string {
   return t.kind === "room" ? `room:${t.roomId}` : `tier:${t.guestCount}:${t.rooms}`;
+}
+
+function BookingLegend() {
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-slate-500">
+      {(Object.keys(BOOKING_STYLES) as NightBooking["source"][]).map((key) => (
+        <span key={key} className="flex items-center gap-1.5">
+          <span className={`inline-block h-1.5 w-4 rounded ${BOOKING_STYLES[key].bar}`} />
+          {BOOKING_STYLES[key].name}
+        </span>
+      ))}
+    </div>
+  );
 }
 
 export function VillaRateOverridesTab({ property, rooms }: { property: Property; rooms: Room[] }) {
@@ -66,6 +86,61 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
     // eslint-disable-next-line react-hooks/set-state-in-effect
     load();
   }, [load]);
+
+  // Existing bookings and blocks, so the admin can see which nights are
+  // already taken (and by whom) while setting prices. Best-effort: if
+  // either call fails the calendar just shows prices, as before.
+  const [blocks, setBlocks] = useState<AvailabilityBlock[]>([]);
+  const [bookings, setBookings] = useState<Booking[]>([]);
+  const loadOccupancy = useCallback(() => {
+    const from = `${todayKey().slice(0, 8)}01`; // the calendars start on the 1st of this month
+    getAvailabilityAdmin(authedFetch, property.id, from, addDaysToKey(from, 400))
+      .then(setBlocks)
+      .catch(() => setBlocks([]));
+    listBookingsForProperty(authedFetch, property.id)
+      .then(setBookings)
+      .catch(() => setBookings([]));
+  }, [authedFetch, property.id]);
+  useEffect(() => {
+    loadOccupancy();
+    // Bookings keep arriving while the admin works on prices; refresh every
+    // minute so a guest who is mid-payment shows up too.
+    const id = window.setInterval(loadOccupancy, 60_000);
+    return () => window.clearInterval(id);
+  }, [loadOccupancy]);
+
+  // Night -> what occupies it. Booking any room locks the whole villa (see
+  // lib/availability.ts), so every block counts whichever room is selected.
+  const nightBookings = useMemo(() => {
+    const byId = new Map(bookings.map((b) => [b.id, b]));
+    const map = new Map<string, NightBooking>();
+    for (const block of blocks) {
+      if (block.status !== "active") continue;
+      const booking = block.bookingId ? byId.get(block.bookingId) : undefined;
+      let entry: NightBooking;
+      if (booking?.status === "pending_payment") {
+        entry = { source: "pending", label: `${BOOKING_STYLES.pending.name} - ${booking.guestName}` };
+      } else if (block.source === "direct") {
+        entry = {
+          source: "direct",
+          label: `${BOOKING_STYLES.direct.name}${booking ? ` - ${booking.guestName}` : ""}`,
+        };
+      } else {
+        const source: NightBooking["source"] =
+          block.source === "booking_com" ? "booking_com" : block.source === "manual" ? "manual" : "airbnb";
+        entry = { source, label: BOOKING_STYLES[source].name };
+      }
+      let night = block.startDate.slice(0, 10);
+      const end = block.endDate.slice(0, 10);
+      while (night < end) {
+        map.set(night, entry);
+        night = addDaysToKey(night, 1);
+      }
+    }
+    return map;
+  }, [blocks, bookings]);
+
+  const bookingFor = useCallback((dateKey: string) => nightBookings.get(dateKey) ?? null, [nightBookings]);
 
   // Only the overrides belonging to the room/tier currently on screen — the
   // calendar would be meaningless if it mixed prices for different rooms.
@@ -150,6 +225,13 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
       ) + 1
     : 0;
 
+  const bookedInSelection = useMemo(() => {
+    if (!selection) return 0;
+    let count = 0;
+    for (let d = selection.start; d <= selection.end; d = addDaysToKey(d, 1)) if (nightBookings.has(d)) count += 1;
+    return count;
+  }, [selection, nightBookings]);
+
   const noTargets = hasRooms ? rooms.length === 0 : tiers.length === 0;
 
   return (
@@ -208,8 +290,12 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
             </p>
             <p className="mb-3 text-xs text-slate-400">
               Click a single date, or click and drag across several to select a range. Each date shows the
-              nightly price it currently charges.
+              nightly price it currently charges; a coloured bar marks nights that are already booked (hover for
+              details).
             </p>
+            <div className="mb-3">
+              <BookingLegend />
+            </div>
 
             <PriceCalendar
               monthCount={2}
@@ -218,6 +304,7 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
               onSelectionChange={setSelection}
               priceFor={priceFor}
               isOverridden={isOverridden}
+              bookingFor={bookingFor}
               currency={property.currency}
             />
 
@@ -237,6 +324,13 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
                     <span className="text-slate-400">None yet — pick dates above</span>
                   )}
                 </p>
+                {bookedInSelection > 0 && (
+                  <p className="mt-1 max-w-sm text-xs text-amber-700">
+                    {bookedInSelection === 1 ? "1 selected night is" : `${bookedInSelection} selected nights are`} already
+                    booked.
+                    Existing bookings keep the price they were booked at; a new price only applies to new bookings.
+                  </p>
+                )}
               </div>
 
               <label className="flex flex-col gap-1 text-xs font-semibold uppercase tracking-wide text-slate-500">
@@ -293,12 +387,14 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
                 Today
               </span>
             </div>
+            <BookingLegend />
 
             <div className="mt-5">
               <PriceCalendar
                 monthCount={12}
                 priceFor={priceFor}
                 isOverridden={isOverridden}
+                bookingFor={bookingFor}
                 currency={property.currency}
               />
             </div>
