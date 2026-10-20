@@ -31,6 +31,7 @@ import SriLankaTourPackage from "@/pages/sri-lanka/transport/packages/[slug]/pag
 import SriLankaDestination from "@/pages/sri-lanka/destinations/[slug]/page";
 import SriLankaTerms from "@/pages/sri-lanka/terms/page";
 import SriLankaPrivacy from "@/pages/sri-lanka/privacy/page";
+import SriLankaRefundPolicy from "@/pages/sri-lanka/refund-policy/page";
 
 import Marketplace from "@/pages/sri-lanka/marketplace/page";
 import MarketplaceCart from "@/pages/sri-lanka/marketplace/cart/page";
@@ -126,6 +127,7 @@ export default function App() {
             <Route path="/sri-lanka/destinations/:slug" element={<SriLankaDestination />} />
             <Route path="/sri-lanka/terms" element={<SriLankaTerms />} />
             <Route path="/sri-lanka/privacy" element={<SriLankaPrivacy />} />
+            <Route path="/sri-lanka/refund-policy" element={<SriLankaRefundPolicy />} />
 
             {/* Sri Lanka marketplace */}
             <Route path="/sri-lanka/marketplace" element={<Marketplace />} />

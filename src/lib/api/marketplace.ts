@@ -11,8 +11,12 @@ import type {
   LowStockItem,
   Order,
   Product,
+  ProductOffer,
+  ProductOfferInput,
   ProductReview,
   ProductVariant,
+  StockLevel,
+  StockRow,
   ShippingRate,
   UpdateCategoryInput,
   UpdateProductInput,
@@ -121,7 +125,8 @@ export function updateProduct(fetcher: AuthedFetch, id: string, input: UpdatePro
   });
 }
 
-// 409 if the product has order history — deactivate it instead (PATCH active: false).
+// Allowed even with order history: past orders keep their own snapshot of
+// the name, option, SKU and price.
 export function deleteProduct(fetcher: AuthedFetch, id: string) {
   return fetcher<void>(`/api/marketplace/catalog/products/${id}`, { method: "DELETE" });
 }
@@ -154,7 +159,7 @@ export function updateProductVariant(
   });
 }
 
-// 409 if the variation has order history — deactivate it instead.
+// Allowed even with order history (orders keep their snapshots).
 export function deleteProductVariant(fetcher: AuthedFetch, productId: string, variantId: string) {
   return fetcher<void>(`/api/marketplace/catalog/products/${productId}/variants/${variantId}`, { method: "DELETE" });
 }
@@ -168,6 +173,48 @@ export function adjustVariantStock(fetcher: AuthedFetch, productId: string, vari
 
 export function listLowStock(fetcher: AuthedFetch) {
   return fetcher<LowStockItem[]>("/api/marketplace/catalog/low-stock");
+}
+
+// --- Stock tab (admin) ---
+
+export function listStock(fetcher: AuthedFetch) {
+  return fetcher<StockRow[]>("/api/marketplace/catalog/stock");
+}
+
+/** Sets the counted quantity and/or the low-stock alert level directly. */
+export function setStockLevel(
+  fetcher: AuthedFetch,
+  stockLevelId: string,
+  input: { quantityOnHand?: number; lowStockThreshold?: number }
+) {
+  return fetcher<StockLevel>(`/api/marketplace/catalog/stock/${stockLevelId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+// --- Product offers (admin) ---
+
+export function listProductOffers(fetcher: AuthedFetch) {
+  return fetcher<ProductOffer[]>("/api/marketplace/catalog/offers");
+}
+
+export function createProductOffer(fetcher: AuthedFetch, productId: string, input: ProductOfferInput) {
+  return fetcher<ProductOffer>(`/api/marketplace/catalog/products/${productId}/offers`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateProductOffer(fetcher: AuthedFetch, offerId: string, input: Partial<ProductOfferInput>) {
+  return fetcher<ProductOffer>(`/api/marketplace/catalog/offers/${offerId}`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+}
+
+export function deleteProductOffer(fetcher: AuthedFetch, offerId: string) {
+  return fetcher<void>(`/api/marketplace/catalog/offers/${offerId}`, { method: "DELETE" });
 }
 
 export function listOrders(fetcher: AuthedFetch, status?: string) {

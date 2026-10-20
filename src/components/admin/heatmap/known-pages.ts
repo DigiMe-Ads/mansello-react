@@ -29,4 +29,5 @@ export const KNOWN_PAGES: KnownPage[] = [
   { site: "sri_lanka", path: "/sri-lanka/marketplace", label: "Marketplace" },
   { site: "sri_lanka", path: "/sri-lanka/terms", label: "Terms" },
   { site: "sri_lanka", path: "/sri-lanka/privacy", label: "Privacy" },
+  { site: "sri_lanka", path: "/sri-lanka/refund-policy", label: "Refunds & Returns" },
 ];

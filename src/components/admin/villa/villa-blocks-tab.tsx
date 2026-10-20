@@ -7,19 +7,16 @@ import { createManualBlock, getAvailabilityAdmin, releaseBlock } from "@/lib/api
 import { ApiRequestError } from "@/lib/api/errors";
 import { addDaysToKey, formatDisplayDate, todayKey } from "@/lib/date";
 import type { AvailabilityBlock, Room } from "@/lib/api/types";
+import { BOOKING_STYLES, blockDisplaySource, type NightBooking } from "@/components/admin/villa/price-calendar";
 
-const SOURCE_LABELS: Record<string, string> = {
-  direct: "Direct booking",
-  airbnb: "Airbnb",
-  booking_com: "Booking.com",
-  manual: "Manual block",
-};
-
-const SOURCE_COLORS: Record<string, string> = {
+const SOURCE_COLORS: Record<NightBooking["source"], string> = {
   direct: "bg-emerald-100 text-emerald-700",
   airbnb: "bg-rose-100 text-rose-700",
+  airbnb_closed: "border border-rose-200 bg-white text-rose-500",
   booking_com: "bg-blue-100 text-blue-700",
+  booking_com_closed: "border border-blue-200 bg-white text-blue-500",
   manual: "bg-slate-200 text-slate-700",
+  pending: "bg-amber-100 text-amber-700",
 };
 
 // Blocks are stored half-open, [startDate, endDate): endDate is the first
@@ -131,8 +128,10 @@ export function VillaBlocksTab({ propertyId, rooms = [] }: { propertyId: string;
               {blocks.map((block) => (
                 <tr key={block.id}>
                   <td className="border-t border-slate-100 px-4 py-3">
-                    <span className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[block.source]}`}>
-                      {SOURCE_LABELS[block.source]}
+                    <span
+                      className={`rounded-full px-3 py-1 text-xs font-semibold ${SOURCE_COLORS[blockDisplaySource(block)]}`}
+                    >
+                      {BOOKING_STYLES[blockDisplaySource(block)].name}
                     </span>
                   </td>
                   {rooms.length > 0 && (

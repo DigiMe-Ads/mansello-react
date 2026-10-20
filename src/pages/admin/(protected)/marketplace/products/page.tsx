@@ -1,13 +1,13 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
+import { Search, Truck } from "lucide-react";
 import { RequireAdmin } from "@/components/admin/require-admin";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT, ADMIN_SELECT, ADMIN_TEXTAREA } from "@/components/admin/input-styles";
 import { ImageDropzone } from "@/components/admin/image-dropzone";
 import {
-  adjustStock,
-  adjustVariantStock,
   createCategory,
   createProduct,
   deleteCategory,
@@ -15,16 +15,15 @@ import {
   getCategories,
   getProductsAdmin,
   getShippingRates,
-  listLowStock,
   updateCategory,
   updateProduct,
   updateShippingRates,
   uploadProductImages,
 } from "@/lib/api/marketplace";
 import { uploadImages } from "@/lib/api/uploads";
-import { ApiRequestError, isConflict } from "@/lib/api/errors";
+import { ApiRequestError } from "@/lib/api/errors";
 import { formatMoney } from "@/lib/currency";
-import type { Category, LowStockItem, Product, ShippingRate } from "@/lib/api/types";
+import type { Category, Product, ShippingRate } from "@/lib/api/types";
 import { FLAT_SHIPPING_FEE } from "@/lib/marketplace-config";
 import { AdminField } from "@/components/admin/admin-field";
 import { RichTextEditor } from "@/components/admin/rich-text-editor";
@@ -38,7 +37,78 @@ import {
   VariantRowsEditor,
   type VariantDraft,
 } from "@/components/admin/product-variants";
-import { activeVariants, priceRange } from "@/lib/variants";
+import { activeVariants, bestOfferOf, priceRange } from "@/lib/variants";
+import { isRenderableImageSrc } from "@/lib/image";
+import { StockTab } from "@/components/admin/marketplace/stock-tab";
+import { OffersTab } from "@/components/admin/marketplace/offers-tab";
+
+// "Get it within X–Y days" on the storefront, per product.
+interface DeliveryEstimateDraft {
+  enabled: boolean;
+  min: string;
+  max: string;
+}
+
+function deliveryDraftOf(product?: Product): DeliveryEstimateDraft {
+  return {
+    enabled: product?.deliveryEstimateEnabled ?? false,
+    min: product?.deliveryMinDays != null ? String(product.deliveryMinDays) : "2",
+    max: product?.deliveryMaxDays != null ? String(product.deliveryMaxDays) : "5",
+  };
+}
+
+function deliveryInput(d: DeliveryEstimateDraft) {
+  return {
+    deliveryEstimateEnabled: d.enabled,
+    deliveryMinDays: d.min === "" ? null : Number(d.min),
+    deliveryMaxDays: d.max === "" ? null : Number(d.max),
+  };
+}
+
+function DeliveryEstimateFields({
+  value,
+  onChange,
+}: {
+  value: DeliveryEstimateDraft;
+  onChange: (value: DeliveryEstimateDraft) => void;
+}) {
+  return (
+    <div className="rounded-2xl border border-slate-200 p-4 sm:col-span-2">
+      <label className="flex items-center gap-2 text-sm font-semibold text-slate-700">
+        <input type="checkbox" checked={value.enabled} onChange={(e) => onChange({ ...value, enabled: e.target.checked })} />
+        <Truck size={16} className="text-[#8DC63F]" />
+        Show “Get it within…” delivery time in the shop
+      </label>
+      {value.enabled && (
+        <div className="mt-3 flex flex-wrap items-end gap-3">
+          <AdminField label="Earliest (days)">
+            <input
+              type="number"
+              min={0}
+              max={365}
+              value={value.min}
+              onChange={(e) => onChange({ ...value, min: e.target.value })}
+              className={`${ADMIN_INPUT} w-28`}
+            />
+          </AdminField>
+          <AdminField label="Latest (days)">
+            <input
+              type="number"
+              min={0}
+              max={365}
+              value={value.max}
+              onChange={(e) => onChange({ ...value, max: e.target.value })}
+              className={`${ADMIN_INPUT} w-28`}
+            />
+          </AdminField>
+          <p className="pb-2 text-xs text-slate-400">
+            Counted from the day the customer views the product, e.g. 2–5 shows “Get it between Wed 22 Oct – Sat 25 Oct”.
+          </p>
+        </div>
+      )}
+    </div>
+  );
+}
 
 // Product category <select> options: each top-level category followed by
 // its subcategories, indented. Products can be filed under either.
@@ -88,6 +158,21 @@ function ParentCategorySelect({
   );
 }
 
+type Tab = "Products" | "Stock" | "Offers" | "Categories" | "Delivery charges";
+const TABS: Tab[] = ["Products", "Stock", "Offers", "Categories", "Delivery charges"];
+
+type ProductFilter = "all" | "low" | "out" | "offer" | "hidden";
+
+/** "out" when nothing is left to sell, "low" when it's at/below its alert level. */
+function productStockState(product: Product): "out" | "low" | "ok" {
+  const variants = activeVariants(product);
+  const levels = variants.length > 0 ? variants.map((v) => v.stockLevel) : [product.stockLevel];
+  const known = levels.filter((l): l is NonNullable<typeof l> => !!l);
+  if (known.length === 0 || known.every((l) => l.quantityOnHand <= 0)) return "out";
+  if (known.some((l) => l.quantityOnHand <= l.lowStockThreshold)) return "low";
+  return "ok";
+}
+
 export default function AdminProductsPage() {
   return (
     <RequireAdmin roles={["super_admin", "marketplace_manager"]}>
@@ -98,24 +183,24 @@ export default function AdminProductsPage() {
 
 function ProductsContent() {
   const { authedFetch } = useAdminAuth();
+  const [tab, setTab] = useState<Tab>("Products");
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [lowStock, setLowStock] = useState<LowStockItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [adjustingId, setAdjustingId] = useState<string | null>(null);
+  const [filter, setFilter] = useState<ProductFilter>("all");
+  const [query, setQuery] = useState("");
 
   const load = useCallback(() => {
     setLoading(true);
     setError(null);
-    Promise.all([getProductsAdmin(authedFetch), getCategories(), listLowStock(authedFetch)])
-      .then(([prods, cats, low]) => {
+    Promise.all([getProductsAdmin(authedFetch), getCategories()])
+      .then(([prods, cats]) => {
         setProducts(prods);
         setCategories(cats);
-        setLowStock(low);
       })
       .catch((err) => setError(err instanceof Error ? err.message : "Failed to load products"))
       .finally(() => setLoading(false));
@@ -128,114 +213,199 @@ function ProductsContent() {
     load();
   }, [load]);
 
+  const counts = useMemo(
+    () => ({
+      all: products.length,
+      low: products.filter((p) => productStockState(p) === "low").length,
+      out: products.filter((p) => productStockState(p) === "out").length,
+      offer: products.filter((p) => bestOfferOf(p)).length,
+      hidden: products.filter((p) => !p.active).length,
+    }),
+    [products]
+  );
+
+  const visible = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return products.filter((p) => {
+      if (filter === "low" && productStockState(p) !== "low") return false;
+      if (filter === "out" && productStockState(p) !== "out") return false;
+      if (filter === "offer" && !bestOfferOf(p)) return false;
+      if (filter === "hidden" && p.active) return false;
+      if (!q) return true;
+      return (
+        p.name.toLowerCase().includes(q) ||
+        p.sku.toLowerCase().includes(q) ||
+        (p.variants ?? []).some((v) => v.sku.toLowerCase().includes(q) || v.name.toLowerCase().includes(q))
+      );
+    });
+  }, [products, filter, query]);
+
+  const chips: { key: ProductFilter; label: string; tone?: string }[] = [
+    { key: "all", label: `All (${counts.all})` },
+    { key: "low", label: `Running low (${counts.low})`, tone: counts.low ? "text-amber-700" : undefined },
+    { key: "out", label: `Out of stock (${counts.out})`, tone: counts.out ? "text-red-600" : undefined },
+    { key: "offer", label: `On offer (${counts.offer})` },
+    { key: "hidden", label: `Hidden (${counts.hidden})` },
+  ];
+
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-[#153C4D]">Products</h1>
-        <div className="flex gap-2">
-          <button
-            type="button"
-            onClick={() => setShowCategoryForm((v) => !v)}
-            className="rounded-full border border-slate-200 px-5 py-2 text-sm font-semibold text-slate-600 transition hover:bg-slate-50"
-          >
-            {showCategoryForm ? "Cancel" : "+ New Category"}
-          </button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-bold text-[#153C4D]">Marketplace</h1>
+        {tab === "Products" && (
           <button
             type="button"
             onClick={() => setShowCreateForm((v) => !v)}
-            className="rounded-full bg-[#8DC63F] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#72A62E]"
+            disabled={categories.length === 0}
+            className="rounded-full bg-[#8DC63F] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#72A62E] disabled:opacity-50"
           >
             {showCreateForm ? "Cancel" : "+ New Product"}
           </button>
-        </div>
+        )}
+        {tab === "Categories" && (
+          <button
+            type="button"
+            onClick={() => setShowCategoryForm((v) => !v)}
+            className="rounded-full bg-[#8DC63F] px-5 py-2 text-sm font-semibold text-white transition hover:bg-[#72A62E]"
+          >
+            {showCategoryForm ? "Cancel" : "+ New Category"}
+          </button>
+        )}
       </div>
 
-      {showCategoryForm && (
-        <CreateCategoryForm
-          categories={categories}
-          featuredCount={categories.filter((c) => c.featured).length}
-          onCreated={() => {
-            setShowCategoryForm(false);
-            load();
-          }}
-        />
-      )}
-
-      {categories.length > 0 && (
-        <CategoryList
-          categories={categories}
-          products={products}
-          onChanged={load}
-        />
-      )}
-
-      {categories.length === 0 && (
-        <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
-          No categories exist yet — click &quot;+ New Category&quot; above before creating a product.
-        </p>
-      )}
-
-      <ShippingRatesSection />
-
-      {lowStock.length > 0 && (
-        <div className="rounded-2xl bg-amber-50 p-4">
-          <p className="text-sm font-semibold text-amber-800">Low stock ({lowStock.length})</p>
-          <p className="mt-1 text-xs text-amber-700">
-            {lowStock.map((item) => (item.variant ? `${item.product.name} (${item.variant.name})` : item.product.name)).join(", ")}
-          </p>
-        </div>
-      )}
-
-      {showCreateForm && (
-        <CreateProductForm
-          categories={categories}
-          onCreated={() => {
-            setShowCreateForm(false);
-            load();
-          }}
-        />
-      )}
+      <div className="flex gap-1 overflow-x-auto border-b border-slate-200">
+        {TABS.map((t) => (
+          <button
+            key={t}
+            type="button"
+            onClick={() => setTab(t)}
+            className={`whitespace-nowrap border-b-2 px-4 py-2 text-sm font-semibold transition ${
+              tab === t ? "border-[#153C4D] text-[#153C4D]" : "border-transparent text-slate-400 hover:text-slate-600"
+            }`}
+          >
+            {t}
+            {t === "Stock" && counts.low + counts.out > 0 && (
+              <span className="ml-1.5 rounded-full bg-amber-100 px-1.5 text-[11px] text-amber-800">
+                {counts.low + counts.out}
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
 
       {error && <p className="rounded-lg bg-red-50 px-4 py-3 text-sm text-red-700">{error}</p>}
-      {loading && <p className="text-sm text-slate-500">Loading...</p>}
 
-      {!loading && (
-        <div className="overflow-hidden rounded-2xl bg-white shadow-sm">
-          <table className="w-full border-separate border-spacing-0 text-sm">
-            <thead>
-              <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Category</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3">Active</th>
-                <th className="px-4 py-3" />
-              </tr>
-            </thead>
-            <tbody>
-              {products.length === 0 && (
-                <tr>
-                  <td colSpan={6} className="border-t border-slate-100 px-4 py-6 text-center text-slate-400">
-                    No products yet.
-                  </td>
-                </tr>
-              )}
-              {products.map((product) => (
-                <ProductRow
-                  key={product.id}
-                  product={product}
-                  categories={categories}
-                  editing={editingId === product.id}
-                  adjusting={adjustingId === product.id}
-                  onToggleEdit={() => setEditingId(editingId === product.id ? null : product.id)}
-                  onToggleAdjust={() => setAdjustingId(adjustingId === product.id ? null : product.id)}
-                  onChanged={load}
-                />
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {tab === "Products" && (
+        <>
+          {categories.length === 0 && !loading && (
+            <p className="rounded-lg bg-amber-50 px-4 py-3 text-sm text-amber-800">
+              No categories exist yet — add one on the <strong>Categories</strong> tab before creating a product.
+            </p>
+          )}
+
+          {showCreateForm && (
+            <CreateProductForm
+              categories={categories}
+              onCreated={() => {
+                setShowCreateForm(false);
+                load();
+              }}
+            />
+          )}
+
+          <div className="flex flex-wrap items-center gap-2">
+            {chips.map((c) => (
+              <button
+                key={c.key}
+                type="button"
+                onClick={() => setFilter(c.key)}
+                className={`rounded-full px-4 py-1.5 text-xs font-semibold transition ${
+                  filter === c.key
+                    ? "bg-[#153C4D] text-white"
+                    : `bg-white shadow-sm hover:bg-slate-50 ${c.tone ?? "text-slate-600"}`
+                }`}
+              >
+                {c.label}
+              </button>
+            ))}
+            <div className="relative ml-auto">
+              <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search name or SKU"
+                aria-label="Search products"
+                className={`${ADMIN_INPUT} pl-8`}
+              />
+            </div>
+          </div>
+
+          {loading && <p className="text-sm text-slate-500">Loading...</p>}
+
+          {!loading && (
+            <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
+              <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
+                <thead>
+                  <tr className="bg-slate-50 text-left text-xs uppercase tracking-wide text-slate-400">
+                    <th className="px-4 py-3">Product</th>
+                    <th className="px-4 py-3">Category</th>
+                    <th className="px-4 py-3">Price</th>
+                    <th className="px-4 py-3">Stock</th>
+                    <th className="px-4 py-3">Shop</th>
+                    <th className="px-4 py-3" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {visible.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="border-t border-slate-100 px-4 py-6 text-center text-slate-400">
+                        {products.length === 0 ? "No products yet." : "No products match this filter."}
+                      </td>
+                    </tr>
+                  )}
+                  {visible.map((product) => (
+                    <ProductRow
+                      key={product.id}
+                      product={product}
+                      categories={categories}
+                      editing={editingId === product.id}
+                      onToggleEdit={() => setEditingId(editingId === product.id ? null : product.id)}
+                      onOpenStock={() => setTab("Stock")}
+                      onChanged={load}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </>
       )}
+
+      {tab === "Stock" && <StockTab key={products.length} />}
+
+      {tab === "Offers" && <OffersTab products={products} />}
+
+      {tab === "Categories" && (
+        <>
+          {showCategoryForm && (
+            <CreateCategoryForm
+              categories={categories}
+              featuredCount={categories.filter((c) => c.featured).length}
+              onCreated={() => {
+                setShowCategoryForm(false);
+                load();
+              }}
+            />
+          )}
+          {categories.length > 0 ? (
+            <CategoryList categories={categories} products={products} onChanged={load} />
+          ) : (
+            !loading && <p className="text-sm text-slate-400">No categories yet.</p>
+          )}
+        </>
+      )}
+
+      {tab === "Delivery charges" && <ShippingRatesSection />}
     </div>
   );
 }
@@ -244,35 +414,29 @@ function ProductRow({
   product,
   categories,
   editing,
-  adjusting,
   onToggleEdit,
-  onToggleAdjust,
+  onOpenStock,
   onChanged,
 }: {
   product: Product;
   categories: Category[];
   editing: boolean;
-  adjusting: boolean;
   onToggleEdit: () => void;
-  onToggleAdjust: () => void;
+  onOpenStock: () => void;
   onChanged: () => void;
 }) {
   const { authedFetch } = useAdminAuth();
   const variants = product.variants ?? [];
   const stock = product.stockLevel;
   const range = priceRange(product);
-  // With variations, stock lives on each one: show the total and flag the
-  // row if any variation is low.
-  const variantTotal = variants.reduce((sum, v) => sum + (v.stockLevel?.quantityOnHand ?? 0), 0);
-  const lowStock =
-    variants.length > 0
-      ? activeVariants(product).some((v) => v.stockLevel && v.stockLevel.quantityOnHand <= v.stockLevel.lowStockThreshold)
-      : stock && stock.quantityOnHand <= stock.lowStockThreshold;
+  const offer = bestOfferOf(product);
+  const state = productStockState(product);
+  const variantTotal = activeVariants(product).reduce((sum, v) => sum + (v.stockLevel?.quantityOnHand ?? 0), 0);
+  const image = [...product.images, ...variants.flatMap((v) => v.images ?? [])].find((src) => isRenderableImageSrc(src));
 
   const [confirmingDelete, setConfirmingDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
-  const [blockedByOrders, setBlockedByOrders] = useState(false);
 
   async function handleDelete() {
     setDeleting(true);
@@ -282,21 +446,7 @@ function ProductRow({
       onChanged();
     } catch (err) {
       setConfirmingDelete(false);
-      setBlockedByOrders(isConflict(err));
       setDeleteError(err instanceof ApiRequestError ? err.message : "Failed to delete product");
-    } finally {
-      setDeleting(false);
-    }
-  }
-
-  async function handleDeactivateInstead() {
-    setDeleting(true);
-    try {
-      await updateProduct(authedFetch, product.id, { active: false });
-      setDeleteError(null);
-      onChanged();
-    } catch (err) {
-      setDeleteError(err instanceof ApiRequestError ? err.message : "Failed to deactivate product");
     } finally {
       setDeleting(false);
     }
@@ -304,32 +454,55 @@ function ProductRow({
 
   return (
     <>
-      <tr>
+      <tr className={editing ? "bg-slate-50/60" : undefined}>
         <td className="border-t border-slate-100 px-4 py-3">
-          <p className="font-semibold text-[#153C4D]">{product.name}</p>
-          <p className="text-xs text-slate-400">{product.sku}</p>
+          <div className="flex items-center gap-3">
+            <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-lg bg-slate-100">
+              {image && <Image src={image} alt="" fill sizes="44px" className="object-cover" />}
+            </div>
+            <div>
+              <p className="font-semibold text-[#153C4D]">{product.name}</p>
+              <p className="text-xs text-slate-400">
+                {product.sku}
+                {variants.length > 0 && ` · ${variants.length} option${variants.length === 1 ? "" : "s"}`}
+              </p>
+            </div>
+          </div>
         </td>
         <td className="border-t border-slate-100 px-4 py-3 text-slate-600">
           {categoryPath(categories.find((c) => c.id === product.categoryId) ?? product.category, categories)}
         </td>
-        <td className="border-t border-slate-100 px-4 py-3 font-semibold text-[#153C4D]">
-          {range.min === range.max
-            ? formatMoney(range.min, "usd")
-            : `${formatMoney(range.min, "usd")} – ${formatMoney(range.max, "usd")}`}
-        </td>
-        <td className={`border-t border-slate-100 px-4 py-3 ${lowStock ? "font-semibold text-amber-700" : "text-slate-600"}`}>
-          {variants.length > 0 ? (
-            <>
-              {variantTotal} on hand
-              <span className="block text-xs font-normal text-slate-400">
-                {variants.length} variation{variants.length === 1 ? "" : "s"}
-              </span>
-            </>
-          ) : stock ? (
-            `${stock.quantityOnHand} on hand`
-          ) : (
-            "—"
+        <td className="border-t border-slate-100 px-4 py-3">
+          <span className={`font-semibold ${offer ? "text-red-600" : "text-[#153C4D]"}`}>
+            {range.min === range.max
+              ? formatMoney(range.min, "usd")
+              : `${formatMoney(range.min, "usd")} – ${formatMoney(range.max, "usd")}`}
+          </span>
+          {offer && (
+            <span className="ml-2 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-bold text-red-600">
+              {offer.offerPercent}% off
+            </span>
           )}
+        </td>
+        <td className="border-t border-slate-100 px-4 py-3">
+          <button type="button" onClick={onOpenStock} className="text-left hover:underline">
+            <span
+              className={
+                state === "out"
+                  ? "font-semibold text-red-600"
+                  : state === "low"
+                    ? "font-semibold text-amber-700"
+                    : "text-slate-600"
+              }
+            >
+              {variants.length > 0 ? variantTotal : (stock?.quantityOnHand ?? 0)} on hand
+            </span>
+            {state !== "ok" && (
+              <span className="block text-xs font-normal text-slate-400">
+                {state === "out" ? "Out of stock" : "Running low"}
+              </span>
+            )}
+          </button>
         </td>
         <td className="border-t border-slate-100 px-4 py-3">
           <span
@@ -337,16 +510,13 @@ function ProductRow({
               product.active ? "bg-emerald-100 text-emerald-700" : "bg-slate-200 text-slate-600"
             }`}
           >
-            {product.active ? "Active" : "Inactive"}
+            {product.active ? "Visible" : "Hidden"}
           </span>
         </td>
         <td className="border-t border-slate-100 px-4 py-3 text-right">
-          <div className="flex justify-end items-center gap-3">
-            <button type="button" onClick={onToggleAdjust} className="text-xs font-semibold text-[#153C4D] hover:underline">
-              Stock
-            </button>
+          <div className="flex items-center justify-end gap-3">
             <button type="button" onClick={onToggleEdit} className="text-xs font-semibold text-[#153C4D] hover:underline">
-              Edit
+              {editing ? "Close" : "Edit"}
             </button>
             {confirmingDelete ? (
               <span className="flex items-center gap-2">
@@ -356,7 +526,7 @@ function ProductRow({
                   disabled={deleting}
                   className="text-xs font-semibold text-red-600 hover:underline disabled:opacity-60"
                 >
-                  {deleting ? "Deleting..." : "Confirm?"}
+                  {deleting ? "Deleting..." : "Yes, delete"}
                 </button>
                 <button
                   type="button"
@@ -378,33 +548,24 @@ function ProductRow({
           </div>
         </td>
       </tr>
+      {confirmingDelete && (
+        <tr>
+          <td colSpan={6} className="border-t border-slate-100 bg-red-50/60 px-4 py-2 text-xs text-red-700">
+            Deleting removes “{product.name}” from the shop for good. Past orders keep their own record of its name,
+            option and the price paid. To take it down temporarily, edit it and untick “Visible in the shop” instead.
+          </td>
+        </tr>
+      )}
       {deleteError && (
         <tr>
           <td colSpan={6} className="border-t border-slate-100 bg-red-50 px-4 py-3">
             <p className="text-xs text-red-700">{deleteError}</p>
-            {blockedByOrders && (
-              <button
-                type="button"
-                onClick={handleDeactivateInstead}
-                disabled={deleting}
-                className="mt-2 text-xs font-semibold text-[#153C4D] hover:underline disabled:opacity-60"
-              >
-                {deleting ? "Deactivating..." : "Deactivate instead"}
-              </button>
-            )}
-          </td>
-        </tr>
-      )}
-      {adjusting && (
-        <tr>
-          <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
-            <StockAdjustForm product={product} onDone={onChanged} />
           </td>
         </tr>
       )}
       {editing && (
         <tr>
-          <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-4">
+          <td colSpan={6} className="border-t border-slate-100 bg-slate-50/60 px-4 py-5">
             <EditProductForm product={product} categories={categories} onDone={onChanged} />
             <VariantManager product={product} onChanged={onChanged} />
           </td>
@@ -948,6 +1109,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
   const [weightKg, setWeightKg] = useState("");
   // Optional variations (e.g. 80ml / 100ml), each with its own SKU, price,
   // weight and stock — replacing the single price/stock/weight fields.
+  const [delivery, setDelivery] = useState<DeliveryEstimateDraft>(deliveryDraftOf());
   const [withVariants, setWithVariants] = useState(false);
   const [variantDrafts, setVariantDrafts] = useState<VariantDraft[]>([{ ...EMPTY_VARIANT }, { ...EMPTY_VARIANT }]);
   const [submitting, setSubmitting] = useState(false);
@@ -981,6 +1143,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
         lowStockThreshold: variants ? undefined : Number(lowStockThreshold),
         weightKg: variants ? undefined : weightKg ? Number(weightKg) : undefined,
         variants,
+        ...deliveryInput(delivery),
       });
       onCreated();
     } catch (err) {
@@ -994,12 +1157,14 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
     <form onSubmit={handleSubmit} className="rounded-2xl bg-white p-6 shadow-sm">
       {error && <p className="mb-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
-          <option value="" disabled>
-            Select category
-          </option>
-          <CategoryOptions categories={categories} />
-        </select>
+        <AdminField label="Category" required>
+          <select required value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
+            <option value="" disabled>
+              Select category
+            </option>
+            <CategoryOptions categories={categories} />
+          </select>
+        </AdminField>
         <AdminField
           label="SKU"
           required
@@ -1027,7 +1192,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
         </div>
         <label className="flex items-center gap-2 text-sm font-semibold text-slate-700 sm:col-span-2">
           <input type="checkbox" checked={withVariants} onChange={(e) => setWithVariants(e.target.checked)} />
-          This product has variations (e.g. sizes like 80ml and 100ml)
+          This product comes in options (e.g. sizes like 80ml and 100ml)
         </label>
         {withVariants ? (
           <div className="sm:col-span-2">
@@ -1053,6 +1218,7 @@ function CreateProductForm({ categories, onCreated }: { categories: Category[]; 
           </AdminField>
           </>
         )}
+        <DeliveryEstimateFields value={delivery} onChange={setDelivery} />
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <button
@@ -1083,6 +1249,8 @@ function EditProductForm({
   const [images, setImages] = useState<string[]>(product.images);
   const [active, setActive] = useState(product.active);
   const [weightKg, setWeightKg] = useState(product.weightKg ?? "");
+  const [delivery, setDelivery] = useState<DeliveryEstimateDraft>(deliveryDraftOf(product));
+  const [saved, setSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // Price and weight are set per variation once a product has any.
@@ -1105,7 +1273,9 @@ function EditProductForm({
         images,
         active,
         weightKg: variantPriced ? undefined : weightKg !== "" ? Number(weightKg) : undefined,
+        ...deliveryInput(delivery),
       });
+      setSaved(true);
       onDone();
     } catch (err) {
       setError(err instanceof ApiRequestError ? err.message : "Failed to update product");
@@ -1115,107 +1285,61 @@ function EditProductForm({
   }
 
   return (
-    <form onSubmit={handleSubmit} className="flex flex-col gap-3">
+    <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+      <h4 className="text-xs font-bold uppercase tracking-wide text-[#153C4D]">Product details</h4>
       {error && <p className="rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
       <div className="grid gap-3 sm:grid-cols-2">
-        <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
-          <CategoryOptions categories={categories} />
-        </select>
-        <input value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
+        <AdminField label="Category">
+          <select value={categoryId} onChange={(e) => setCategoryId(e.target.value)} className={ADMIN_SELECT}>
+            <CategoryOptions categories={categories} />
+          </select>
+        </AdminField>
+        <AdminField label="Product name">
+          <input value={name} onChange={(e) => setName(e.target.value)} className={ADMIN_INPUT} />
+        </AdminField>
         {variantPriced ? (
-          <p className="self-center text-xs text-slate-400 sm:col-span-1">
-            Price and weight are set per variation below.
+          <p className="rounded-xl bg-white px-4 py-2 text-xs text-slate-500 sm:col-span-2">
+            Price and weight are set per option below.
           </p>
         ) : (
           <>
-          <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
-          <input
-            type="number"
-            min={0}
-            step="0.01"
-            placeholder="Weight per unit (kg)"
-            value={weightKg}
-            onChange={(e) => setWeightKg(e.target.value)}
-            className={ADMIN_INPUT}
-          />
+            <AdminField label="Price (USD)" help="Regular price — put it on sale from the Offers tab.">
+              <input type="number" min={0} step="0.01" value={priceUsd} onChange={(e) => setPriceUsd(e.target.value)} className={ADMIN_INPUT} />
+            </AdminField>
+            <AdminField label="Weight per unit (kg)" help="Used for the delivery charge.">
+              <input
+                type="number"
+                min={0}
+                step="0.01"
+                placeholder="0.00"
+                value={weightKg}
+                onChange={(e) => setWeightKg(e.target.value)}
+                className={ADMIN_INPUT}
+              />
+            </AdminField>
           </>
         )}
-        <div className="sm:col-span-2">
+        <div className="flex flex-col gap-1 sm:col-span-2">
+          <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Description</span>
           <RichTextEditor value={description} onChange={setDescription} ariaLabel="Product description" />
         </div>
+        <DeliveryEstimateFields value={delivery} onChange={setDelivery} />
         <ProductImageUploader images={images} onChange={setImages} />
       </div>
       <label className="flex items-center gap-2 text-sm text-slate-600">
         <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
-        Active (visible in the storefront)
+        Visible in the shop
       </label>
-      <button
-        type="submit"
-        disabled={submitting}
-        className="w-fit rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
-      >
-        {submitting ? "Saving..." : "Save Changes"}
-      </button>
-    </form>
-  );
-}
-
-function StockAdjustForm({ product, onDone }: { product: Product; onDone: () => void }) {
-  const { authedFetch } = useAdminAuth();
-  const variants = [...(product.variants ?? [])].sort((x, y) => x.sortOrder - y.sortOrder);
-  const [variantId, setVariantId] = useState(variants[0]?.id ?? "");
-  const [delta, setDelta] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  async function handleSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    if (!delta) return;
-    setSubmitting(true);
-    setError(null);
-    try {
-      if (variants.length > 0) await adjustVariantStock(authedFetch, product.id, variantId, Number(delta));
-      else await adjustStock(authedFetch, product.id, Number(delta));
-      setDelta("");
-      onDone();
-    } catch (err) {
-      setError(err instanceof ApiRequestError ? err.message : "Failed to adjust stock");
-    } finally {
-      setSubmitting(false);
-    }
-  }
-
-  return (
-    <form onSubmit={handleSubmit} className="flex flex-wrap items-center gap-3">
-      {error && <p className="text-xs text-red-700">{error}</p>}
-      {variants.length > 0 && (
-        <select
-          aria-label="Variation"
-          value={variantId}
-          onChange={(e) => setVariantId(e.target.value)}
-          className={ADMIN_SELECT}
+      <div className="flex items-center gap-3">
+        <button
+          type="submit"
+          disabled={submitting}
+          className="w-fit rounded-full bg-[#153C4D] px-6 py-2 text-sm font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
         >
-          {variants.map((v) => (
-            <option key={v.id} value={v.id}>
-              {v.name} — {v.stockLevel?.quantityOnHand ?? 0} on hand
-            </option>
-          ))}
-        </select>
-      )}
-      <input
-        type="number"
-        placeholder="Delta (e.g. 10 or -3)"
-        value={delta}
-        onChange={(e) => setDelta(e.target.value)}
-        className={ADMIN_INPUT}
-      />
-      <button
-        type="submit"
-        disabled={submitting}
-        className="rounded-full bg-[#153C4D] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
-      >
-        {submitting ? "Applying..." : "Apply"}
-      </button>
+          {submitting ? "Saving..." : "Save details"}
+        </button>
+        {saved && !submitting && <span className="text-xs text-emerald-700">Saved.</span>}
+      </div>
     </form>
   );
 }

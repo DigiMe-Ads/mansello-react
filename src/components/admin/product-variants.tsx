@@ -1,10 +1,16 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Trash2 } from "lucide-react";
+import { ImageIcon, Plus, Trash2 } from "lucide-react";
+import { ImageDropzone } from "@/components/admin/image-dropzone";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT } from "@/components/admin/input-styles";
-import { createProductVariant, deleteProductVariant, updateProductVariant } from "@/lib/api/marketplace";
+import {
+  createProductVariant,
+  deleteProductVariant,
+  updateProductVariant,
+  uploadProductImages,
+} from "@/lib/api/marketplace";
 import { ApiRequestError, isConflict } from "@/lib/api/errors";
 import type { CreateProductVariantInput, Product, ProductVariant } from "@/lib/api/types";
 
@@ -21,6 +27,7 @@ export interface VariantDraft {
   weightKg: string;
   initialStock: string;
   lowStockThreshold: string;
+  images: string[];
 }
 
 export const EMPTY_VARIANT: VariantDraft = {
@@ -30,7 +37,41 @@ export const EMPTY_VARIANT: VariantDraft = {
   weightKg: "",
   initialStock: "0",
   lowStockThreshold: "5",
+  images: [],
 };
+
+/**
+ * Photos for one option, shown to customers when they pick it (the product's
+ * own photos follow). Collapsed to a small toggle until opened.
+ */
+function OptionPhotos({ images, onChange }: { images: string[]; onChange: (images: string[]) => void }) {
+  const { authedFetch } = useAdminAuth();
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="col-span-full">
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="inline-flex items-center gap-1 text-xs font-semibold text-slate-500 hover:text-[#153C4D]"
+      >
+        <ImageIcon size={14} />
+        {images.length > 0 ? `Photos for this option (${images.length})` : "Add photos for this option"}
+        <span className="text-slate-300">{open ? "▴" : "▾"}</span>
+      </button>
+      {open && (
+        <div className="mt-2">
+          <ImageDropzone
+            compact
+            label="Option photos"
+            images={images}
+            onChange={onChange}
+            upload={(files) => uploadProductImages(authedFetch, files).then((r) => r.urls)}
+          />
+        </div>
+      )}
+    </div>
+  );
+}
 
 /** Returns an error message, or null when the drafts are valid. */
 export function validateVariantDrafts(drafts: VariantDraft[]): string | null {
@@ -54,6 +95,7 @@ export function draftToInput(d: VariantDraft): CreateProductVariantInput {
     weightKg: d.weightKg ? Number(d.weightKg) : undefined,
     initialStock: Number(d.initialStock || 0),
     lowStockThreshold: d.lowStockThreshold === "" ? undefined : Number(d.lowStockThreshold),
+    images: d.images,
   };
 }
 
@@ -97,10 +139,10 @@ export function VariantRowsEditor({
       </div>
       <button
         type="button"
-        onClick={() => onChange([...drafts, { ...EMPTY_VARIANT, priceUsd: drafts.at(-1)?.priceUsd ?? "" }])}
+        onClick={() => onChange([...drafts, { ...EMPTY_VARIANT, images: [], priceUsd: drafts.at(-1)?.priceUsd ?? "" }])}
         className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#153C4D] hover:underline"
       >
-        <Plus size={14} /> Add variation
+        <Plus size={14} /> Add option
       </button>
     </div>
   );
@@ -130,6 +172,7 @@ function VariantDraftCells({
       <button type="button" onClick={onRemove} aria-label="Remove variation" className="text-slate-400 hover:text-red-600">
         <Trash2 size={16} />
       </button>
+      <OptionPhotos images={d.images} onChange={(images) => onChange({ images })} />
     </>
   );
 }
@@ -164,15 +207,24 @@ export function VariantManager({ product, onChanged }: { product: Product; onCha
 
   return (
     <div className="mt-6 border-t border-slate-200 pt-5">
-      <h4 className="text-xs font-bold uppercase tracking-wide text-[#153C4D]">Variations</h4>
+      <h4 className="text-xs font-bold uppercase tracking-wide text-[#153C4D]">Options (sizes, flavours…)</h4>
       <p className="mt-1 text-xs text-slate-400">
-        Optional — e.g. sizes. When a product has active variations, customers pick one, and each variation&apos;s own
-        price, SKU, weight and stock are used. Change stock with the <strong>Stock</strong> button on the row above.
+        Optional. When a product has options, customers pick one, and that option&apos;s own price, SKU, weight, photos
+        and stock are used. Change quantities on the <strong>Stock</strong> tab; put an option on sale from the{" "}
+        <strong>Offers</strong> tab.
       </p>
       {error && <p className="mt-3 rounded-lg bg-red-50 px-4 py-2 text-sm text-red-700">{error}</p>}
 
       {variants.length > 0 && (
         <div className="mt-3 flex flex-col gap-2">
+          <div className="grid grid-cols-[1.4fr_1.2fr_0.9fr_0.8fr_0.8fr_auto] gap-2 px-3 text-[11px] font-semibold uppercase tracking-wide text-slate-500">
+            <span>Name</span>
+            <span>SKU</span>
+            <span>Price (USD)</span>
+            <span>Weight (kg)</span>
+            <span>Low stock at</span>
+            <span>Stock</span>
+          </div>
           {variants.map((v) => (
             <ExistingVariantRow key={v.id} product={product} variant={v} onChanged={onChanged} />
           ))}
@@ -191,16 +243,16 @@ export function VariantManager({ product, onChanged }: { product: Product; onCha
             disabled={busy}
             className="mt-3 rounded-full bg-[#153C4D] px-5 py-2 text-xs font-semibold text-white transition hover:bg-[#0e2c38] disabled:opacity-60"
           >
-            {busy ? "Adding..." : "Add variation"}
+            {busy ? "Adding..." : "Add option"}
           </button>
         </div>
       ) : (
         <button
           type="button"
-          onClick={() => setAdding({ ...EMPTY_VARIANT, priceUsd: variants.at(-1)?.priceUsd ?? product.priceUsd })}
+          onClick={() => setAdding({ ...EMPTY_VARIANT, images: [], priceUsd: variants.at(-1)?.priceUsd ?? product.priceUsd })}
           className="mt-3 inline-flex items-center gap-1 text-xs font-semibold text-[#153C4D] hover:underline"
         >
-          <Plus size={14} /> Add a variation
+          <Plus size={14} /> Add an option
         </button>
       )}
       {variants.length === 0 && !adding && (
@@ -229,6 +281,7 @@ function ExistingVariantRow({
     priceUsd: variant.priceUsd,
     weightKg: variant.weightKg ?? "",
     lowStockThreshold: String(variant.stockLevel?.lowStockThreshold ?? ""),
+    images: variant.images ?? [],
   });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -261,6 +314,7 @@ function ExistingVariantRow({
         priceUsd: Number(draft.priceUsd),
         weightKg: draft.weightKg !== "" ? Number(draft.weightKg) : undefined,
         lowStockThreshold: draft.lowStockThreshold !== "" ? Number(draft.lowStockThreshold) : undefined,
+        images: draft.images,
       })
     );
 
@@ -275,6 +329,7 @@ function ExistingVariantRow({
         <span className={`whitespace-nowrap text-xs ${low ? "font-semibold text-amber-700" : "text-slate-500"}`}>
           {stock ? `${stock.quantityOnHand} on hand` : "no stock"}
         </span>
+        <OptionPhotos images={draft.images} onChange={(images) => setDraft({ ...draft, images })} />
       </div>
       <div className="mt-2 flex flex-wrap items-center gap-3 text-xs font-semibold">
         <button type="button" onClick={save} disabled={saving} className="text-[#153C4D] hover:underline disabled:opacity-60">
@@ -296,7 +351,7 @@ function ExistingVariantRow({
               disabled={saving}
               className="text-red-600 hover:underline disabled:opacity-60"
             >
-              Confirm delete?
+              Delete? Past orders keep their record
             </button>
             <button type="button" onClick={() => setConfirmingDelete(false)} className="text-slate-400 hover:underline">
               Cancel
@@ -312,7 +367,7 @@ function ExistingVariantRow({
       {error && (
         <p className="mt-2 text-xs text-red-700">
           {error}
-          {blockedByOrders && variant.active && " — it has past orders, so use “Hide from shop” instead."}
+          {blockedByOrders && variant.active && " — use “Hide from shop” instead."}
         </p>
       )}
     </div>

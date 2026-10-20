@@ -20,6 +20,7 @@ const exploreLinks = [
 const legalLinks = [
   { label: "Terms & Condition", href: "/sri-lanka/terms" },
   { label: "Privacy Policy", href: "/sri-lanka/privacy" },
+  { label: "Refunds & Returns", href: "/sri-lanka/refund-policy" },
   { label: "Contact", href: "/sri-lanka/contact" },
 ];
 

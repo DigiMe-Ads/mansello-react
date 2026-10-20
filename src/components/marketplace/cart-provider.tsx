@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { isRenderableImageSrc } from "@/lib/image";
 import type { Product, ProductVariant } from "@/lib/api/types";
+import { effectivePrice } from "@/lib/variants";
 
 export interface CartItem {
   // Identifies the cart line: one line per product, or per product +
@@ -103,8 +104,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           variantId: variant?.id ?? null,
           variantName: variant?.name ?? null,
           name: product.name,
-          priceUsd: Number(source.priceUsd),
-          image: isRenderableImageSrc(product.images[0]) ? product.images[0] : null,
+          // The offer price, if one is running — checkout re-prices on the server.
+          priceUsd: effectivePrice(source),
+          image: [...(variant?.images ?? []), ...product.images].find((src) => isRenderableImageSrc(src)) ?? null,
           quantity: clampQuantity(quantity, maxStock),
           maxStock,
           unitWeightKg: Number(source.weightKg ?? 0),

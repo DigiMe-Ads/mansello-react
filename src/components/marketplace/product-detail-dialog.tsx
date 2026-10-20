@@ -5,9 +5,18 @@ import { Money } from "@/components/currency-provider";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import { Link } from "react-router-dom";
-import { Minus, Plus, ShoppingCart, Star, X } from "lucide-react";
+import { Minus, Plus, ShoppingCart, Star, Truck, X } from "lucide-react";
 import { cartLineKey, MAX_CART_QUANTITY, useCart } from "@/components/marketplace/cart-provider";
-import { activeVariants, defaultVariant, priceRange, productStockStatus, stockStatusOf } from "@/lib/variants";
+import {
+  activeVariants,
+  bestOfferOf,
+  defaultVariant,
+  deliveryEstimate,
+  effectivePrice,
+  priceRange,
+  productStockStatus,
+  stockStatusOf,
+} from "@/lib/variants";
 import { createProductReview, getProductReviews } from "@/lib/api/marketplace";
 import { ApiRequestError } from "@/lib/api/errors";
 import { categoryPath } from "@/lib/category-tree";
@@ -53,11 +62,18 @@ export function ProductDetailDialog({
   const [variantId, setVariantId] = useState<string | null>(() => defaultVariant(product)?.id ?? null);
   const variant = variants.find((v) => v.id === variantId) ?? null;
   const { stock, soldOut, low } = variant ? stockStatusOf(variant.stockLevel) : stockStatus(product);
-  const price = variant ? variant.priceUsd : product.priceUsd;
+  const priceSource = variant ?? product;
+  const price = effectivePrice(priceSource);
+  const listPrice = Number(priceSource.priceUsd);
+  const onOffer = priceSource.offerPercent != null && price < listPrice;
+  const delivery = deliveryEstimate(product);
   const inCart = items.find((i) => i.key === cartLineKey(product.id, variant?.id))?.quantity ?? 0;
   const canAdd = Math.max(0, Math.min(stock, MAX_CART_QUANTITY) - inCart);
 
-  const images = product.images.filter((src) => isRenderableImageSrc(src));
+  // The picked option's own photos first, then the product's.
+  const images = [...new Set([...(variant?.images ?? []), ...product.images])].filter((src) =>
+    isRenderableImageSrc(src)
+  );
   const [activeImage, setActiveImage] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -134,6 +150,11 @@ export function ProductDetailDialog({
                   Sold Out
                 </span>
               )}
+              {!soldOut && onOffer && (
+                <span className="absolute left-0 top-4 rounded-r-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+                  {priceSource.offerPercent}% OFF
+                </span>
+              )}
             </div>
             {images.length > 1 && (
               <div className="mt-3 flex flex-wrap gap-2">
@@ -179,7 +200,33 @@ export function ProductDetailDialog({
               </button>
             )}
 
-            <p className="mt-4 text-2xl font-bold text-[#153C4D]"><Money amount={price} currency="usd" /></p>
+            <div className="mt-4 flex flex-wrap items-baseline gap-x-3 gap-y-1">
+              <p className={`text-2xl font-bold ${onOffer ? "text-red-600" : "text-[#153C4D]"}`}>
+                <Money amount={price} currency="usd" />
+              </p>
+              {onOffer && (
+                <>
+                  <p className="text-base text-slate-400 line-through">
+                    <Money amount={listPrice} currency="usd" />
+                  </p>
+                  <span className="rounded-full bg-red-50 px-2.5 py-0.5 text-xs font-bold text-red-600">
+                    {priceSource.offerTitle ? `${priceSource.offerTitle} · ` : ""}
+                    {priceSource.offerPercent}% off
+                  </span>
+                </>
+              )}
+            </div>
+            {onOffer && priceSource.offerEndsAt && (
+              <p className="mt-1 text-xs text-slate-500">
+                Offer ends{" "}
+                {new Date(priceSource.offerEndsAt).toLocaleString("en-GB", {
+                  day: "numeric",
+                  month: "short",
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
+              </p>
+            )}
 
             {variants.length > 0 && (
               <div className="mt-4">
@@ -200,6 +247,7 @@ export function ProductDetailDialog({
                           setVariantId(v.id);
                           setQuantity(1);
                           setAdded(false);
+                          setActiveImage(0);
                         }}
                         className={`rounded-full border px-4 py-2 text-sm font-semibold transition ${
                           selected
@@ -230,6 +278,12 @@ export function ProductDetailDialog({
                 </p>
               )}
             </div>
+            {delivery && !soldOut && (
+              <p className="mt-3 inline-flex items-center gap-2 text-sm font-semibold text-[#153C4D]">
+                <Truck size={16} className="text-[#8DC63F]" />
+                {delivery}
+              </p>
+            )}
 
             {!soldOut && (
               <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -463,13 +517,33 @@ function ReviewForm({ productId, onCreated }: { productId: string; onCreated: (r
   );
 }
 
-/** Card price: a single price, or "From $X" when variations differ in price. */
+/** Card price: a single price, or "From $X" when variations differ in price; struck-through list price when on offer. */
 export function ProductPrice({ product }: { product: Product }) {
-  const { min, max } = priceRange(product);
+  const { min, max, listMin } = priceRange(product);
+  const onOffer = bestOfferOf(product) !== null && min < listMin;
   return (
     <>
       {min !== max && "From "}
-      <Money amount={min} currency="usd" />
+      <span className={onOffer ? "font-semibold text-red-600" : undefined}>
+        <Money amount={min} currency="usd" />
+      </span>
+      {onOffer && (
+        <span className="ml-1.5 text-xs text-slate-400 line-through">
+          <Money amount={listMin} currency="usd" />
+        </span>
+      )}
     </>
+  );
+}
+
+/** "20% OFF" corner badge for product cards, or nothing. */
+export function OfferBadge({ product }: { product: Product }) {
+  const offer = bestOfferOf(product);
+  if (!offer) return null;
+  return (
+    <span className="absolute right-0 top-4 rounded-l-full bg-red-600 px-3 py-1 text-xs font-bold text-white">
+      {activeVariants(product).length > 0 && offer !== product ? "Up to " : ""}
+      {offer.offerPercent}% OFF
+    </span>
   );
 }

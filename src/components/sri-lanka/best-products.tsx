@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
 import { useCart } from "@/components/marketplace/cart-provider";
-import { StarRating, stockStatus, ProductPrice } from "@/components/marketplace/product-detail-dialog";
+import { OfferBadge, StarRating, stockStatus, ProductPrice } from "@/components/marketplace/product-detail-dialog";
 import { hasVariants } from "@/lib/variants";
 import { categoryIdsForFilter, rootCategoryOf, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
 import { isRenderableImageSrc } from "@/lib/image";
@@ -44,6 +44,7 @@ function ProductCard({ product }: { product: Product }) {
               Low stock — {stock} left
             </span>
           )}
+          {!soldOut && <OfferBadge product={product} />}
         </div>
         <div className="px-3 pt-4 text-center">
           <h3 className="text-sm font-bold text-[#153C4D] group-hover:underline">{product.name}</h3>

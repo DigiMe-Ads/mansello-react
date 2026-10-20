@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { buildMonthGrid, nextMonth, prevMonth, todayKey } from "@/lib/date";
+import type { AvailabilityBlock } from "@/lib/api/types";
 
 export interface DateRange {
   start: string;
@@ -15,18 +16,35 @@ export function normalizeRange(a: string, b: string): DateRange {
 
 /** What occupies a night, for showing existing bookings on the calendar. */
 export interface NightBooking {
-  source: "direct" | "airbnb" | "booking_com" | "manual" | "pending";
+  source: "direct" | "airbnb" | "airbnb_closed" | "booking_com" | "booking_com_closed" | "manual" | "pending";
   /** Tooltip text, e.g. "Direct booking — Nadia P." */
   label: string;
 }
 
 export const BOOKING_STYLES: Record<NightBooking["source"], { bar: string; name: string }> = {
   direct: { bar: "bg-emerald-500", name: "Direct booking" },
-  airbnb: { bar: "bg-rose-500", name: "Airbnb" },
-  booking_com: { bar: "bg-blue-600", name: "Booking.com" },
+  airbnb: { bar: "bg-rose-500", name: "Airbnb reservation" },
+  airbnb_closed: { bar: "bg-rose-200", name: "Closed on Airbnb (not a booking)" },
+  booking_com: { bar: "bg-blue-600", name: "Booking.com (booked or closed)" },
+  booking_com_closed: { bar: "bg-blue-200", name: "Closed on Booking.com (not a booking)" },
   manual: { bar: "bg-slate-500", name: "Manual block" },
   pending: { bar: "bg-amber-500", name: "Being booked (awaiting payment)" },
 };
+
+/**
+ * How a non-direct block is shown. Airbnb's feed tells a reservation
+ * ("Reserved") apart from nights merely closed on Airbnb — host blocks, the
+ * listing's booking window — and the backend tags that as `importKind`.
+ * Booking.com's feed doesn't, so most of its blocks stay "booked or closed".
+ * Every one of them blocks the dates either way.
+ */
+export function blockDisplaySource(block: AvailabilityBlock): NightBooking["source"] {
+  if (block.source === "manual") return "manual";
+  if (block.source === "direct") return "direct";
+  const closed = block.importKind === "blocked";
+  if (block.source === "booking_com") return closed ? "booking_com_closed" : "booking_com";
+  return closed ? "airbnb_closed" : "airbnb";
+}
 
 function inRange(key: string, range: DateRange | null): boolean {
   return !!range && key >= range.start && key <= range.end;

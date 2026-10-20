@@ -123,6 +123,13 @@ export const PAGE_META = meta({
       "How Mansello collects, uses, and protects your personal data for our Sri Lanka bookings, transfers, and marketplace orders.",
   },
 
+  sriLankaRefundPolicy: {
+    path: "/sri-lanka/refund-policy",
+    title: "Refunds & Returns Policy — Marketplace",
+    description:
+      "How refunds, returns, damaged items, return shipping, and customs charges work for orders from the Mansello Marketplace.",
+  },
+
   // --- Marketplace ---------------------------------------------------------
   marketplace: {
     path: "/sri-lanka/marketplace",

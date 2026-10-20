@@ -228,6 +228,13 @@ export default function CheckoutPage() {
                 >
                   {submitting ? "Preparing payment..." : `Continue to Payment — ${formatMoney(total, "usd")}`}
                 </button>
+                <p className="text-center text-xs text-slate-500">
+                  By placing your order you agree to our{" "}
+                  <Link href="/sri-lanka/refund-policy" className="font-semibold text-[#153C4D] underline">
+                    Refunds &amp; Returns Policy
+                  </Link>
+                  , including that customs duties and import taxes are your responsibility.
+                </p>
               </form>
             )}
 

@@ -197,6 +197,16 @@ function OrderRow({
                     <span>
                       {item.productNameSnapshot}
                       {item.variantNameSnapshot ? ` (${item.variantNameSnapshot})` : ""} × {item.quantity}
+                      {item.skuSnapshot && <span className="ml-1 text-xs text-slate-400">{item.skuSnapshot}</span>}
+                      {item.discountPercent != null && (
+                        <span className="ml-1 text-xs font-semibold text-red-600">
+                          {item.discountPercent}% off
+                          {item.listPriceSnapshot ? ` (was ${formatMoney(item.listPriceSnapshot, "usd")})` : ""}
+                        </span>
+                      )}
+                      {!item.productId && (
+                        <span className="ml-1 text-xs text-slate-400">· product since deleted</span>
+                      )}
                     </span>
                     <span>{formatMoney(item.lineTotal, "usd")}</span>
                   </div>

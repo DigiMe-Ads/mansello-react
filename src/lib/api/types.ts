@@ -158,6 +158,11 @@ export interface UpdateRoomInput {
 // BACKEND_CHANGES_PRODUCT_DETAILS_SUBCATEGORIES_ICAL.md §1.
 export type AvailabilitySource = "direct" | "airbnb" | "booking_com" | "manual";
 export type BlockStatus = "active" | "cancelled";
+// Imported blocks only: "reservation" = Airbnb "Reserved"; "blocked" = closed
+// on the channel but nobody booked it (Airbnb "Not available", booking-window
+// closures). null = direct/manual, or a Booking.com event (its feed doesn't
+// say which).
+export type ImportedBlockKind = "reservation" | "blocked";
 
 export interface AvailabilityBlock {
   id: string;
@@ -167,6 +172,7 @@ export interface AvailabilityBlock {
   source: AvailabilitySource;
   status: BlockStatus;
   externalUid: string | null;
+  importKind?: ImportedBlockKind | null;
   bookingId: string | null;
   createdAt: string;
   updatedAt: string;
@@ -292,13 +298,14 @@ export interface Category {
 
 export interface StockLevel {
   id: string;
-  productId: string;
+  productId: string | null;
+  variantId?: string | null;
   quantityOnHand: number;
   lowStockThreshold: number;
   updatedAt: string;
 }
 
-export interface Product {
+export interface Product extends OfferPriceFields {
   id: string;
   categoryId: string;
   category: Category;
@@ -330,9 +337,60 @@ export interface Product {
   // for sorting and "from" labels). Absent/empty = a plain product, exactly
   // as before. See BACKEND_CHANGES_VARIANTS_CALENDAR_PAYMENTS_LK.md §1.
   variants?: ProductVariant[];
+  // "Get it within X–Y days" — shown on the storefront only when enabled.
+  deliveryEstimateEnabled?: boolean;
+  deliveryMinDays?: number | null;
+  deliveryMaxDays?: number | null;
 }
 
-export interface ProductVariant {
+// Set by the backend from the offers running right now (all null when
+// nothing is on offer). salePriceUsd is what checkout will charge.
+export interface OfferPriceFields {
+  salePriceUsd?: number | null;
+  offerPercent?: number | null;
+  offerTitle?: string | null;
+  offerEndsAt?: string | null;
+}
+
+export interface ProductOffer {
+  id: string;
+  productId: string;
+  variantId: string | null; // null = every option of the product
+  title: string | null;
+  discountPercent: number;
+  startsAt: string;
+  endsAt: string;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+  product: { id: string; name: string; images: string[]; priceUsd: string };
+  variant: { id: string; name: string; priceUsd: string } | null;
+}
+
+export interface ProductOfferInput {
+  variantId?: string | null;
+  title?: string | null;
+  discountPercent: number;
+  startsAt: string;
+  endsAt: string;
+  active?: boolean;
+}
+
+// One sellable item on the admin Stock tab (a plain product, or one variation).
+export interface StockRow {
+  productId: string;
+  productName: string;
+  productActive: boolean;
+  categoryName: string;
+  image: string | null;
+  variantId: string | null;
+  variantName: string | null;
+  variantActive: boolean;
+  sku: string;
+  stockLevel: StockLevel;
+}
+
+export interface ProductVariant extends OfferPriceFields {
   id: string;
   productId: string;
   name: string; // shown to customers, e.g. "80ml"
@@ -342,6 +400,7 @@ export interface ProductVariant {
   active: boolean;
   sortOrder: number;
   stockLevel: StockLevel | null;
+  images?: string[];
 }
 
 export interface CreateProductVariantInput {
@@ -351,6 +410,7 @@ export interface CreateProductVariantInput {
   weightKg?: number;
   initialStock: number;
   lowStockThreshold?: number;
+  images?: string[];
 }
 
 export interface UpdateProductVariantInput {
@@ -361,6 +421,7 @@ export interface UpdateProductVariantInput {
   active?: boolean;
   sortOrder?: number;
   lowStockThreshold?: number;
+  images?: string[];
 }
 
 export interface ProductReview {
@@ -383,7 +444,12 @@ export type OrderStatus = "pending" | "confirmed" | "packed" | "shipped" | "deli
 export interface OrderItem {
   id: string;
   orderId: string;
-  productId: string;
+  // null once the product has been deleted — the snapshots below still hold.
+  productId: string | null;
+  skuSnapshot?: string | null;
+  // Set when an offer applied: the price before it, and the % taken off.
+  listPriceSnapshot?: string | null;
+  discountPercent?: number | null;
   // Set when the line is a specific variation; the name is snapshotted like
   // productNameSnapshot so later renames don't rewrite past orders.
   variantId?: string | null;
@@ -473,6 +539,9 @@ export interface CreateProductInput {
   // Create the product with its variations in one request. When present,
   // initialStock / lowStockThreshold / weightKg above are ignored.
   variants?: CreateProductVariantInput[];
+  deliveryEstimateEnabled?: boolean;
+  deliveryMinDays?: number | null;
+  deliveryMaxDays?: number | null;
 }
 
 export interface UpdateProductInput {
@@ -483,6 +552,9 @@ export interface UpdateProductInput {
   images?: string[];
   active?: boolean;
   weightKg?: number;
+  deliveryEstimateEnabled?: boolean;
+  deliveryMinDays?: number | null;
+  deliveryMaxDays?: number | null;
 }
 
 // Admin-configurable per-kg shipping cost band (e.g. rows for 1kg, 2kg, ...

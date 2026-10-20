@@ -15,12 +15,15 @@ export function ImageDropzone({
   upload,
   label = "Images",
   multiple = true,
+  compact = false,
 }: {
   images: string[];
   onChange: (images: string[]) => void;
   upload: (files: File[]) => Promise<string[]>;
   label?: string;
   multiple?: boolean;
+  /** Smaller drop area, for use inside a row (e.g. a product option). */
+  compact?: boolean;
 }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
@@ -67,11 +70,11 @@ export function ImageDropzone({
         onClick={() => inputRef.current?.click()}
         role="button"
         tabIndex={0}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-6 py-8 text-center transition ${
+        className={`flex cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border-2 border-dashed px-6 ${compact ? "py-3" : "py-8"} text-center transition ${
           dragActive ? "border-[#8DC63F] bg-[#8DC63F]/5" : "border-slate-300 bg-slate-50 hover:border-slate-400"
         }`}
       >
-        <UploadCloud size={26} className="text-slate-400" />
+        <UploadCloud size={compact ? 18 : 26} className="text-slate-400" />
         <p className="text-sm font-medium text-slate-600">
           {uploading ? "Uploading..." : `Drag & drop ${multiple ? "images" : "an image"} here, or click to browse`}
         </p>

@@ -5,6 +5,7 @@ import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_INPUT, ADMIN_SELECT } from "@/components/admin/input-styles";
 import {
   BOOKING_STYLES,
+  blockDisplaySource,
   PriceCalendar,
   type DateRange,
   type NightBooking,
@@ -126,8 +127,7 @@ export function VillaRateOverridesTab({ property, rooms }: { property: Property;
           label: `${BOOKING_STYLES.direct.name}${booking ? ` - ${booking.guestName}` : ""}`,
         };
       } else {
-        const source: NightBooking["source"] =
-          block.source === "booking_com" ? "booking_com" : block.source === "manual" ? "manual" : "airbnb";
+        const source = blockDisplaySource(block);
         entry = { source, label: BOOKING_STYLES[source].name };
       }
       let night = block.startDate.slice(0, 10);

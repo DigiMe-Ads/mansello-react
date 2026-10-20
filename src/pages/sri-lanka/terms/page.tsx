@@ -46,6 +46,7 @@ const sections: { heading: string; paragraphs: string[] }[] = [
     paragraphs: [
       "Marketplace orders are paid securely online at checkout, through the same Stripe payment gateway used for villa bookings. An order is only confirmed once payment has been successfully processed.",
       "Orders move through the stages pending → confirmed → packed → shipped → delivered, and may be cancelled or returned at most stages. Confirmed or later-stage orders that are cancelled or returned are automatically restocked, and any refund due is issued to your original payment method.",
+      "Returns, refunds, damaged items, return shipping and customs charges for marketplace orders are covered in full by our Refunds & Returns Policy, linked at the bottom of every page.",
       "Prices, product descriptions, and images are shown in good faith and may be updated without notice; the price and details shown at the time your order is confirmed are what apply to that order.",
     ],
   },
