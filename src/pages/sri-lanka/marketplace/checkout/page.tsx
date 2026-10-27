@@ -10,6 +10,7 @@ import Footer from "@/components/sri-lanka/footer";
 import { useCart } from "@/components/marketplace/cart-provider";
 import { CheckoutPaymentStep } from "@/components/marketplace/checkout-payment-step";
 import { HostedCheckoutPanel, PaymentCancelledNotice } from "@/components/payments/hosted-checkout-panel";
+import { CryptoPayOption } from "@/components/payments/crypto-pay-option";
 import { createOrder } from "@/lib/api/marketplace";
 import { ApiRequestError, isValidationError } from "@/lib/api/errors";
 import { useShippingFee } from "@/lib/hooks/use-shipping-fee";
@@ -129,21 +130,27 @@ export default function CheckoutPage() {
               // Payments.lk: the cart is cleared on the confirmation page once
               // the order is confirmed, so cancelling on the hosted page
               // brings the customer back with their cart intact.
-              <HostedCheckoutPanel
-                checkoutUrl={paymentInfo.checkoutUrl}
-                amount={paymentInfo.order.total}
-                currency="usd"
-                chargeAmount={paymentInfo.order.chargeAmount}
-                chargeCurrency={paymentInfo.order.chargeCurrency}
-                pendingOrderId={paymentInfo.order.id}
-              />
+              <div>
+                <HostedCheckoutPanel
+                  checkoutUrl={paymentInfo.checkoutUrl}
+                  amount={paymentInfo.order.total}
+                  currency="usd"
+                  chargeAmount={paymentInfo.order.chargeAmount}
+                  chargeCurrency={paymentInfo.order.chargeCurrency}
+                  pendingOrderId={paymentInfo.order.id}
+                />
+                <CryptoPayOption kind="order" id={paymentInfo.order.id} />
+              </div>
             ) : paymentInfo?.clientSecret ? (
-              <CheckoutPaymentStep
-                order={paymentInfo.order}
-                clientSecret={paymentInfo.clientSecret}
-                confirmationPath={`/sri-lanka/marketplace/order/${paymentInfo.order.id}`}
-                onPaid={clear}
-              />
+              <div>
+                <CheckoutPaymentStep
+                  order={paymentInfo.order}
+                  clientSecret={paymentInfo.clientSecret}
+                  confirmationPath={`/sri-lanka/marketplace/order/${paymentInfo.order.id}`}
+                  onPaid={clear}
+                />
+                <CryptoPayOption kind="order" id={paymentInfo.order.id} />
+              </div>
             ) : (
               <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                 <PaymentCancelledNotice message="Payment was cancelled, so nothing was charged. Your cart is still here — you can try again." />

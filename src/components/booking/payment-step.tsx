@@ -9,6 +9,7 @@ import { getStripePromise } from "@/lib/stripe";
 import { useCountdown } from "@/lib/hooks/use-countdown";
 import { HostedCheckoutPanel } from "@/components/payments/hosted-checkout-panel";
 import { usePropertyBooking } from "./booking-provider";
+import { CryptoPayOption } from "@/components/payments/crypto-pay-option";
 
 function HoldExpired({ onReset }: { onReset: () => void }) {
   return (
@@ -187,17 +188,30 @@ function PaymentForm({ confirmationPath }: { confirmationPath: string }) {
 }
 
 export function PaymentStep({ confirmationPath }: { confirmationPath: string }) {
-  const { property, clientSecret, checkoutUrl } = usePropertyBooking();
+  const { property, booking, clientSecret, checkoutUrl } = usePropertyBooking();
+  const countdown = useCountdown(booking?.expiresAt ?? null);
   if (!property) return null;
-  if (checkoutUrl) return <HostedPayment checkoutUrl={checkoutUrl} />;
+  // Crypto is offered under either card option, while the hold is live.
+  const crypto = booking && !countdown.expired ? <CryptoPayOption kind="booking" id={booking.id} /> : null;
+  if (checkoutUrl) {
+    return (
+      <>
+        <HostedPayment checkoutUrl={checkoutUrl} />
+        {crypto}
+      </>
+    );
+  }
   if (!clientSecret) return null;
 
   return (
-    <Elements
-      stripe={getStripePromise(property.stripeAccountRef)}
-      options={{ clientSecret, appearance: { theme: "stripe" } }}
-    >
-      <PaymentForm confirmationPath={confirmationPath} />
-    </Elements>
+    <>
+      <Elements
+        stripe={getStripePromise(property.stripeAccountRef)}
+        options={{ clientSecret, appearance: { theme: "stripe" } }}
+      >
+        <PaymentForm confirmationPath={confirmationPath} />
+      </Elements>
+      {crypto}
+    </>
   );
 }

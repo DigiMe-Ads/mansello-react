@@ -13,6 +13,18 @@ export function listHeatmapPages(fetcher: AuthedFetch, site?: Site) {
   return fetcher<HeatmapPageInfo[]>(`/api/analytics/heatmap/pages${qs}`);
 }
 
+export interface CountryReach {
+  /** ISO alpha-2 code, or null for visits with no country. Sorted by visitors. */
+  countries: { country: string | null; visitors: number; clicks: number }[];
+  trackingSince: string | null;
+}
+
+export function getCountryReach(fetcher: AuthedFetch, params: { site?: Site; from: string; to: string }) {
+  const qs = new URLSearchParams({ from: params.from, to: params.to });
+  if (params.site) qs.set("site", params.site);
+  return fetcher<CountryReach>(`/api/analytics/countries?${qs.toString()}`);
+}
+
 export function getHeatmapData(
   fetcher: AuthedFetch,
   params: { path: string; device: HeatmapDevice; from: string; to: string }

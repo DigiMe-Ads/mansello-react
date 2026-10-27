@@ -37,6 +37,7 @@ import Marketplace from "@/pages/sri-lanka/marketplace/page";
 import MarketplaceCart from "@/pages/sri-lanka/marketplace/cart/page";
 import MarketplaceCheckout from "@/pages/sri-lanka/marketplace/checkout/page";
 import MarketplaceOrder from "@/pages/sri-lanka/marketplace/order/[id]/page";
+import MarketplaceProduct from "@/pages/sri-lanka/marketplace/product/[id]/page";
 
 import BookingInfo from "@/pages/booking-info/[token]/page";
 
@@ -134,6 +135,7 @@ export default function App() {
             <Route path="/sri-lanka/marketplace/cart" element={<MarketplaceCart />} />
             <Route path="/sri-lanka/marketplace/checkout" element={<MarketplaceCheckout />} />
             <Route path="/sri-lanka/marketplace/order/:id" element={<MarketplaceOrder />} />
+            <Route path="/sri-lanka/marketplace/product/:id" element={<MarketplaceProduct />} />
 
             {/* Guest booking info */}
             <Route path="/booking-info/:token" element={<BookingInfo />} />

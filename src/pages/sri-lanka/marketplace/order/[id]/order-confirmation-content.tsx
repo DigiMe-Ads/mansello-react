@@ -90,7 +90,7 @@ export default function OrderConfirmationContent({ orderId }: { orderId: string 
                 <h1 className="text-2xl font-bold text-[#153C4D]">Confirming your payment...</h1>
                 <p className="mt-3 text-sm text-slate-600">
                   {timedOut
-                    ? "This is taking longer than usual. If your card was charged, your order is safe — we'll email you once it's confirmed."
+                    ? "This is taking longer than usual. If you've paid (crypto can take a while to confirm), your order is safe — we'll email you once it's confirmed."
                     : "This usually takes just a moment."}
                 </p>
               </>

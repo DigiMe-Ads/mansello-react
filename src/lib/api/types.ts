@@ -184,7 +184,8 @@ export interface AvailabilityBlock {
   roomId?: string | null;
 }
 
-export type RefundStatus = "pending" | "succeeded" | "failed";
+// "manual": a crypto (NOWPayments) refund the admin has to send by hand.
+export type RefundStatus = "pending" | "succeeded" | "failed" | "manual";
 
 export type BookingStatus = "pending_payment" | "confirmed" | "paid_offline" | "cancelled" | "completed";
 
@@ -231,6 +232,11 @@ export interface Booking {
   refundError?: string | null;
   refundedChargeAmount?: string | null;
   paymentNote?: string | null;
+  // "stripe" | "payments_lk" | "nowpayments" (crypto).
+  paymentProvider?: string;
+  // Crypto only: the coin and amount the customer actually sent.
+  cryptoPayCurrency?: string | null;
+  cryptoPayAmount?: string | null;
   status: BookingStatus;
   expiresAt: string | null;
   cancelledAt: string | null;
@@ -487,6 +493,11 @@ export interface Order {
   refundError?: string | null;
   refundedChargeAmount?: string | null;
   paymentNote?: string | null;
+  // "stripe" | "payments_lk" | "nowpayments" (crypto).
+  paymentProvider?: string;
+  // Crypto only: the coin and amount the customer actually sent.
+  cryptoPayCurrency?: string | null;
+  cryptoPayAmount?: string | null;
   shippingFee: string;
   subtotal: string;
   total: string;
@@ -1034,5 +1045,7 @@ export interface ClickEventInput {
   // for an optional "top clicked elements" list — never element text
   // content, which could be guest-entered PII.
   targetSelector?: string;
+  // IANA zone, e.g. "Asia/Colombo" — mapped to a country server-side.
+  timeZone?: string;
   occurredAt: string; // ISO timestamp, client clock
 }

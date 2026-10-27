@@ -155,6 +155,9 @@ export function initClickHeatmapTracker() {
       device: deviceBucket(window.innerWidth),
       sessionId: getSessionId(),
       targetSelector: target ? describeTarget(target) : undefined,
+      // Device time zone only — the server maps it to a country for the
+      // admin's "Countries reached" view. No IP address is involved.
+      timeZone: deviceTimeZone(),
       occurredAt: new Date().toISOString(),
     });
 
@@ -167,4 +170,12 @@ export function initClickHeatmapTracker() {
     if (document.visibilityState === "hidden") flush(true);
   });
   window.addEventListener("pagehide", () => flush(true));
+}
+
+function deviceTimeZone(): string | undefined {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().timeZone || undefined;
+  } catch {
+    return undefined;
+  }
 }

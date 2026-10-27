@@ -2,6 +2,7 @@
 
 import { RequireAdmin } from "@/components/admin/require-admin";
 import { HeatmapViewer } from "@/components/admin/heatmap/heatmap-viewer";
+import { CountryReachPanel } from "@/components/admin/heatmap/country-reach";
 
 export default function AdminHeatmapPage() {
   return (
@@ -13,6 +14,7 @@ export default function AdminHeatmapPage() {
             See where visitors actually click on each page — hotter colors mean more clicks.
           </p>
         </div>
+        <CountryReachPanel />
         <HeatmapViewer />
       </div>
     </RequireAdmin>

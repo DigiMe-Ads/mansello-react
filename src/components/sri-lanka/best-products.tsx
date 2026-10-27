@@ -3,7 +3,7 @@
 import Image from "next/image";
 import { useMarketplace } from "@/components/marketplace/marketplace-provider";
 import { useCart } from "@/components/marketplace/cart-provider";
-import { OfferBadge, StarRating, stockStatus, ProductPrice } from "@/components/marketplace/product-detail-dialog";
+import { OfferBadge, StarRating, stockStatus, ProductPrice } from "@/components/marketplace/product-details";
 import { hasVariants } from "@/lib/variants";
 import { categoryIdsForFilter, rootCategoryOf, subcategoriesOf, topLevelCategories } from "@/lib/category-tree";
 import { isRenderableImageSrc } from "@/lib/image";

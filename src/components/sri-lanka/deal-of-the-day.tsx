@@ -1,6 +1,6 @@
 "use client";
 
-import { ProductPrice } from "@/components/marketplace/product-detail-dialog";
+import { ProductPrice } from "@/components/marketplace/product-details";
 
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";

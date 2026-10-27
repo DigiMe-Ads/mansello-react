@@ -41,6 +41,7 @@ import { activeVariants, bestOfferOf, priceRange } from "@/lib/variants";
 import { isRenderableImageSrc } from "@/lib/image";
 import { StockTab } from "@/components/admin/marketplace/stock-tab";
 import { OffersTab } from "@/components/admin/marketplace/offers-tab";
+import { BulkEditTable } from "@/components/admin/marketplace/bulk-edit";
 
 // "Get it within X–Y days" on the storefront, per product.
 interface DeliveryEstimateDraft {
@@ -192,6 +193,7 @@ function ProductsContent() {
   const [showCategoryForm, setShowCategoryForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [filter, setFilter] = useState<ProductFilter>("all");
+  const [view, setView] = useState<"list" | "bulk">("list");
   const [query, setQuery] = useState("");
 
   const load = useCallback(() => {
@@ -328,7 +330,22 @@ function ProductsContent() {
                 {c.label}
               </button>
             ))}
-            <div className="relative ml-auto">
+            <div className="ml-auto flex rounded-full bg-white p-1 shadow-sm" role="group" aria-label="View">
+              {(["list", "bulk"] as const).map((v) => (
+                <button
+                  key={v}
+                  type="button"
+                  onClick={() => setView(v)}
+                  aria-pressed={view === v}
+                  className={`rounded-full px-4 py-1 text-xs font-semibold transition ${
+                    view === v ? "bg-[#153C4D] text-white" : "text-slate-500 hover:text-[#153C4D]"
+                  }`}
+                >
+                  {v === "list" ? "List" : "Bulk edit"}
+                </button>
+              ))}
+            </div>
+            <div className="relative">
               <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input
                 value={query}
@@ -342,7 +359,20 @@ function ProductsContent() {
 
           {loading && <p className="text-sm text-slate-500">Loading...</p>}
 
-          {!loading && (
+          {/* Stays mounted while reloading after a save, so unsaved or failed edits aren't lost. */}
+          {(!loading || products.length > 0) && view === "bulk" && (
+            <BulkEditTable
+              products={visible}
+              categories={categories}
+              onSaved={load}
+              onOpenDetails={(id) => {
+                setView("list");
+                setEditingId(id);
+              }}
+            />
+          )}
+
+          {!loading && view === "list" && (
             <div className="overflow-x-auto rounded-2xl bg-white shadow-sm">
               <table className="w-full min-w-[760px] border-separate border-spacing-0 text-sm">
                 <thead>

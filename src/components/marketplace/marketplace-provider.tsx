@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { getCategories, getProducts } from "@/lib/api/marketplace";
 import type { Category, Product } from "@/lib/api/types";
-import { ProductDetailDialog } from "@/components/marketplace/product-detail-dialog";
+import { useNavigate } from "react-router-dom";
 
 interface MarketplaceState {
   categories: Category[];
@@ -14,8 +14,8 @@ interface MarketplaceState {
   // top-level one also matches its subcategories (lib/category-tree.ts).
   selectedCategorySlug: string | null;
   setSelectedCategorySlug: (slug: string | null) => void;
-  // Product shown in the detail dialog, if any — opened from any section
-  // (Best Products, Deal of the Day) and rendered once here.
+  // Opens the product's own page (/sri-lanka/marketplace/product/:id) —
+  // from any section (Best Products, Deal of the Day).
   openProduct: (product: Product) => void;
 }
 
@@ -27,7 +27,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string | null>(null);
-  const [viewingProductId, setViewingProductId] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     let cancelled = false;
@@ -61,36 +61,12 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       error,
       selectedCategorySlug,
       setSelectedCategorySlug,
-      openProduct: (product) => setViewingProductId(product.id),
+      openProduct: (product) => navigate(`/sri-lanka/marketplace/product/${product.id}`),
     }),
-    [categories, products, loading, error, selectedCategorySlug]
+    [categories, products, loading, error, selectedCategorySlug, navigate]
   );
 
-  const viewingProduct = viewingProductId ? products.find((p) => p.id === viewingProductId) : undefined;
-
-  return (
-    <MarketplaceContext.Provider value={value}>
-      {children}
-      {viewingProduct && (
-        <ProductDetailDialog
-          product={viewingProduct}
-          categories={categories}
-          onClose={() => setViewingProductId(null)}
-          onReviewAdded={(rating) =>
-            // Keep the card's rating summary in step without a refetch.
-            setProducts((prev) =>
-              prev.map((p) => {
-                if (p.id !== viewingProduct.id) return p;
-                const count = p.reviewCount ?? 0;
-                const average = ((p.averageRating ?? 0) * count + rating) / (count + 1);
-                return { ...p, reviewCount: count + 1, averageRating: average };
-              })
-            )
-          }
-        />
-      )}
-    </MarketplaceContext.Provider>
-  );
+  return <MarketplaceContext.Provider value={value}>{children}</MarketplaceContext.Provider>;
 }
 
 export function useMarketplace() {

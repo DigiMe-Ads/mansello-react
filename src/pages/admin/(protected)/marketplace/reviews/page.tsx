@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { RequireAdmin } from "@/components/admin/require-admin";
 import { useAdminAuth } from "@/components/admin/admin-auth-provider";
 import { ADMIN_SELECT } from "@/components/admin/input-styles";
-import { StarRating } from "@/components/marketplace/product-detail-dialog";
+import { StarRating } from "@/components/marketplace/product-details";
 import { deleteProductReview, getProductReviews, getProductsAdmin } from "@/lib/api/marketplace";
 import { ApiRequestError } from "@/lib/api/errors";
 import { formatDisplayDate } from "@/lib/date";
